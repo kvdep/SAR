@@ -373,8 +373,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <!-- GIS MODE CONTROLS -->
         <div id="gis-controls" style="display: flex; flex-direction: column; gap: 12px;">
             <div class="section">
-                <div class="section-title">1. Выбор полигона ландшафта</div>
-                <select id="quadrant-select"></select>
+                <div class="section-title">1. Полигон ландшафта и Сезон</div>
+                <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Полигон:</div>
+                <select id="quadrant-select" style="margin-bottom: 8px;"></select>
+                <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Сезон (Sentinel-1 RTC временной срез):</div>
+                <select id="season-select" onchange="onSeasonChange(this.value)">
+                    <option value="spring">Весна (Апрель/Май, активная вегетация)</option>
+                    <option value="summer">Лето (Июль/Август, засушливый период)</option>
+                    <option value="autumn">Осень (Октябрь/Ноябрь, увлажненная почва)</option>
+                    <option value="winter">Зима (Январь/Февраль, промерзание/снежный покров)</option>
+                </select>
                 <div id="quadrant-desc" class="desc-box"></div>
             </div>
 
@@ -398,13 +406,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                 <!-- B CUSTOM CASCADE BUILDER -->
                 <div id="b-custom-wrap" style="display: none; flex-direction: column; gap: 8px; margin-top: 4px;">
-                    <div style="font-size: 0.72rem; color: #8c9eff;">Рекомендуемые каскады (из 1884 тестов):</div>
+                    <div style="font-size: 0.72rem; color: #8c9eff;">Рекомендуемые каскады (из 1884 тестов + НИР):</div>
                     <div class="preset-pill-bar">
                         <button class="preset-pill" onclick="applyPreset(['FTV', 'RES'])">FTV → RES (Парето)</button>
-                        <button class="preset-pill" onclick="applyPreset(['FTV', 'BIL'])">FTV → BIL</button>
+                        <button class="preset-pill" onclick="applyPreset(['RPCA', 'RES'])">RPCA → RES (НИР)</button>
+                        <button class="preset-pill" onclick="applyPreset(['FTV', 'DIP_MORAN'])">FTV → DIP-Moran</button>
+                        <button class="preset-pill" onclick="applyPreset(['DIP_SARP'])">DIP-SARP (H4)</button>
+                        <button class="preset-pill" onclick="applyPreset(['RPCA', 'BIL'])">RPCA → BIL</button>
                         <button class="preset-pill" onclick="applyPreset(['BIL', 'FTV', 'BIL'])">BIL → FTV → BIL</button>
-                        <button class="preset-pill" onclick="applyPreset(['FTV', 'FTV'])">2x FTV</button>
-                        <button class="preset-pill" onclick="applyPreset(['BIL', 'BIL', 'BIL'])">3x BIL</button>
                     </div>
 
                     <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (любая длина):</div>
@@ -520,12 +529,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                 <!-- BENCH B CUSTOM CASCADE BUILDER -->
                 <div id="bench-b-custom-wrap" style="display: none; flex-direction: column; gap: 8px; margin-top: 4px;">
-                    <div style="font-size: 0.72rem; color: #8c9eff;">Рекомендуемые каскады:</div>
+                    <div style="font-size: 0.72rem; color: #8c9eff;">Рекомендуемые каскады (из 1884 тестов + НИР):</div>
                     <div class="preset-pill-bar">
                         <button class="preset-pill" onclick="applyBenchPreset(['FTV', 'RES'])">FTV → RES</button>
+                        <button class="preset-pill" onclick="applyBenchPreset(['RPCA', 'RES'])">RPCA → RES</button>
+                        <button class="preset-pill" onclick="applyBenchPreset(['DIP_MORAN'])">DIP-Moran</button>
                         <button class="preset-pill" onclick="applyBenchPreset(['FTV', 'BIL'])">FTV → BIL</button>
                         <button class="preset-pill" onclick="applyBenchPreset(['BIL', 'FTV', 'BIL'])">BIL → FTV → BIL</button>
-                        <button class="preset-pill" onclick="applyBenchPreset(['BIL', 'BIL'])">2x BIL</button>
                     </div>
 
                     <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (любая длина):</div>
@@ -621,11 +631,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const quadKeys = Object.keys(DATA).filter(k => !k.startsWith('_'));
         let currentMode = "gis";
         let currentQuad = quadKeys[0];
+        let currentSeason = "spring";
         let currentPipeA = "raw";
         let currentPipeB = "gamma";
         let currentLayer = "rgb";
         let currentOpacity = 1.0;
         let splitPct = 50.0;
+
+        let seasonalAImageUrl = null;
+        let seasonalAMetrics = null;
 
         // Custom Cascade State for Layer B (GIS mode)
         let bMode = "preset"; // "preset" | "custom"
@@ -646,6 +660,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             { id: "RES", name: "ML: SAR-ResNet (Vitale)" },
             { id: "RST", name: "ML: SAR-Restormer (Perera)" },
             { id: "MER", name: "ML: MERLIN Blind-Spot (Dalsasso)" },
+            { id: "RPCA", name: "НИР: Robust PCA (Low-Rank L, IALM)" },
+            { id: "RPCA_S", name: "НИР: Robust PCA (Sparse S, маска выбросов)" },
+            { id: "DIP_MORAN", name: "НИР: DIP-Moran (H2, регуляризация I)" },
+            { id: "DIP_SARP", name: "НИР: DIP-SARP (H4, адаптивные веса)" },
+            { id: "DIP_PURE", name: "НИР: DIP-Pure (H1, U-Net Hourglass)" },
+            { id: "DIP_RFF", name: "НИР: DIP-RFF (H7, Фурье + вариограмма)" },
             { id: "BIL", name: "Bilateral Filter (5x5)" },
             { id: "LEE", name: "Lee Filter (5x5)" },
             { id: "ENH_LEE", name: "Enhanced Lee (5x5)" },
@@ -851,6 +871,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const reqBody = {
                 mode: "gis",
                 target_id: currentQuad,
+                season: currentSeason,
                 stages: customStages,
                 layer: currentLayer
             };
@@ -1233,19 +1254,118 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         // =========================================================================
         // LAYER UPDATING & SYNCHRONIZATION
         // =========================================================================
+        function pipeKeyToStages(pKey) {
+            const map = {
+                "raw": ["RAW"],
+                "boxcar": ["BXC"],
+                "median": ["MED"],
+                "lee": ["LEE"],
+                "enh_lee": ["ENH_LEE"],
+                "kuan": ["KUA"],
+                "frost": ["FRO"],
+                "enh_frost": ["ENH_FRO"],
+                "bilateral": ["BIL"],
+                "gamma": ["GMAP"],
+                "ftv": ["FTV"],
+                "resnet": ["RES"],
+                "merlin": ["MER"],
+                "restormer": ["RST"],
+                "ftv_resnet": ["FTV", "RES"],
+                "ftv_bilateral": ["FTV", "BIL"],
+                "bil_ftv_bil": ["BIL", "FTV", "BIL"],
+                "rpca": ["RPCA"],
+                "rpca_s": ["RPCA_S"],
+                "dip_moran": ["DIP_MORAN"],
+                "dip_sarp": ["DIP_SARP"],
+                "dip_pure": ["DIP_PURE"],
+                "dip_rff": ["DIP_RFF"]
+            };
+            return map[pKey] || ["RAW"];
+        }
+
+        async function onSeasonChange(newSeason) {
+            currentSeason = newSeason;
+            if (currentMode === 'gis') {
+                await updateSeasonalLayers();
+            }
+        }
+
+        async function updateSeasonalLayers() {
+            if (currentSeason === 'spring' && bMode === 'preset') {
+                seasonalAImageUrl = null;
+                seasonalAMetrics = null;
+                updateLayers();
+                return;
+            }
+
+            try {
+                const stagesA = pipeKeyToStages(currentPipeA);
+                const resA = await fetch('http://localhost:8080/api/pipeline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: "gis",
+                        target_id: currentQuad,
+                        season: currentSeason,
+                        stages: stagesA,
+                        layer: currentLayer
+                    })
+                });
+                if (resA.ok) {
+                    const dataA = await resA.json();
+                    if (dataA.status === 'ok') {
+                        seasonalAImageUrl = dataA.img;
+                        seasonalAMetrics = dataA.metrics;
+                    }
+                }
+            } catch (err) {
+                console.warn("[SAR] Ошибка загрузки сезонного слоя A:", err);
+            }
+
+            if (bMode === 'custom') {
+                runCustomPipeline();
+            } else {
+                try {
+                    const stagesB = pipeKeyToStages(currentPipeB);
+                    const resB = await fetch('http://localhost:8080/api/pipeline', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            mode: "gis",
+                            target_id: currentQuad,
+                            season: currentSeason,
+                            stages: stagesB,
+                            layer: currentLayer
+                        })
+                    });
+                    if (resB.ok) {
+                        const dataB = await resB.json();
+                        if (dataB.status === 'ok') {
+                            customBImageUrl = dataB.img;
+                            customBMetrics = dataB.metrics;
+                            isCustomBActive = true;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("[SAR] Ошибка загрузки сезонного слоя B:", err);
+                }
+                updateLayers();
+            }
+        }
+
         function updateLayers() {
             const q = DATA[currentQuad];
             const pipeA = q.pipelines[currentPipeA] || q.pipelines[Object.keys(q.pipelines)[0]];
-            const urlA = pipeA.layers[currentLayer] || pipeA.layers['rgb'];
+            const urlA = (seasonalAImageUrl && currentSeason !== 'spring') ? seasonalAImageUrl : (pipeA.layers[currentLayer] || pipeA.layers['rgb']);
 
             let urlB = "";
             let labelB = "";
 
+            const pipeB = q.pipelines[currentPipeB] || q.pipelines[Object.keys(q.pipelines)[0]];
             if (isCustomBActive && customBImageUrl) {
                 urlB = customBImageUrl;
-                labelB = "Каскад: " + customStages.join(' → ');
+                labelB = (bMode === 'custom') ? ("Каскад: " + customStages.join(' → ')) : (pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name);
             } else {
-                const pipeB = q.pipelines[currentPipeB] || q.pipelines[Object.keys(q.pipelines)[0]];
                 urlB = pipeB.layers[currentLayer] || pipeB.layers['rgb'];
                 labelB = pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name;
             }
@@ -1257,8 +1377,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             overlayA = L.imageOverlay(urlA, q.bounds, { opacity: currentOpacity }).addTo(map);
 
             const labelA = pipeA.name.includes('.') ? pipeA.name.split('.').slice(1).join('.').trim() : pipeA.name;
-            document.getElementById('badge-left').innerText = "A: " + labelA;
-            document.getElementById('badge-right').innerText = "B: " + labelB;
+            const seasonLabels = { "spring": "Весна", "summer": "Лето", "autumn": "Осень", "winter": "Зима" };
+            const sTag = ` [${seasonLabels[currentSeason] || currentSeason}]`;
+            document.getElementById('badge-left').innerText = "A: " + labelA + sTag;
+            document.getElementById('badge-right').innerText = "B: " + labelB + sTag;
 
             applyClip();
             updateMetricsTable();
@@ -1343,10 +1465,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             isCustomBActive = false;
             customBImageUrl = null;
             customBMetrics = null;
+            seasonalAImageUrl = null;
+            seasonalAMetrics = null;
             const statusBox = document.getElementById('custom-status-box');
             if (statusBox) statusBox.style.display = 'none';
             if (bMode === 'custom') {
                 runCustomPipeline();
+            } else if (currentSeason !== 'spring') {
+                updateSeasonalLayers();
             } else {
                 updateLayers();
             }
@@ -1360,13 +1486,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         document.getElementById('pipe-a-select').addEventListener('change', (e) => {
             currentPipeA = e.target.value;
-            updateLayers();
+            if (currentSeason !== 'spring') {
+                updateSeasonalLayers();
+            } else {
+                seasonalAImageUrl = null;
+                updateLayers();
+            }
         });
 
         document.getElementById('pipe-b-select').addEventListener('change', (e) => {
             currentPipeB = e.target.value;
             isCustomBActive = false;
-            updateLayers();
+            if (currentSeason !== 'spring') {
+                updateSeasonalLayers();
+            } else {
+                updateLayers();
+            }
         });
 
         document.querySelectorAll('#layer-group .radio-btn').forEach(btn => {
@@ -1374,8 +1509,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 document.querySelectorAll('#layer-group .radio-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentLayer = btn.getAttribute('data-layer');
-                if (isCustomBActive) {
-                    runCustomPipeline();
+                if (isCustomBActive || currentSeason !== 'spring') {
+                    if (bMode === 'custom') {
+                        runCustomPipeline();
+                    } else {
+                        updateSeasonalLayers();
+                    }
                 } else {
                     updateLayers();
                 }

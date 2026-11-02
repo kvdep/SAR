@@ -339,9 +339,9 @@ def array_to_png_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: st
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
 
 def rgb_composite_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray) -> str:
-    r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
-    g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
-    b = np.clip((ratio_db - (2.0)) / (14.0 - (2.0)), 0.0, 1.0)
+    r = np.clip((vv_db - (-25.0)) / (0.0 - (-25.0)), 0.0, 1.0)
+    g = np.clip((vh_db - (-32.0)) / (-8.0 - (-32.0)), 0.0, 1.0)
+    b = np.clip((ratio_db - 2.0) / (18.0 - 2.0), 0.0, 1.0)
     rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     rgb_8u = (rgb * 255.0).astype(np.uint8)
     img = Image.fromarray(rgb_8u, mode="RGB").convert("RGBA")
@@ -385,6 +385,8 @@ def main():
         return np.maximum(res, 1e-6)
 
     app_data = {}
+
+    from sar_server import run_rpca_ialm, run_dip_eval, model_h2, model_h4
 
     # ---------------------------------------------------------------------
     # ОБРАБОТКА 8 ГЕОПРИВЯЗАННЫХ СЦЕН
@@ -435,17 +437,34 @@ def main():
                 os.remove(tmp_nc)
             bbox = sc["bbox"]
 
-        # Выполнение 14 фильтров с окном w=5
-        print("  -> Запуск фильтров (w=5)...")
+        # Выполнение симметричной фильтрации обоих каналов VV и VH
+        print("  -> Запуск фильтров (w=5, симметрично VV и VH)...")
         f_boxcar = filter_boxcar_mean(vv_raw, w=5)
+        vh_boxcar = filter_boxcar_mean(vh_raw, w=5)
+
         f_median = filter_median(vv_raw, w=5)
+        vh_median = filter_median(vh_raw, w=5)
+
         f_lee = filter_lee(vv_raw, w=5, looks=4.4)
+        vh_lee = filter_lee(vh_raw, w=5, looks=4.4)
+
         f_enh_lee = filter_enhanced_lee(vv_raw, w=5, looks=4.4)
+        vh_enh_lee = filter_enhanced_lee(vh_raw, w=5, looks=4.4)
+
         f_kuan = filter_kuan(vv_raw, w=5, looks=4.4)
+        vh_kuan = filter_kuan(vh_raw, w=5, looks=4.4)
+
         f_frost = filter_frost(vv_raw, w=5)
+        vh_frost = filter_frost(vh_raw, w=5)
+
         f_enh_frost = filter_enhanced_frost(vv_raw, w=5, looks=4.4)
+        vh_enh_frost = filter_enhanced_frost(vh_raw, w=5, looks=4.4)
+
         f_bilateral = filter_bilateral(vv_raw)
+        vh_bilateral = filter_bilateral(vh_raw)
+
         f_gamma = filter_gamma_map(vv_raw, w=5, looks=4.4)
+        vh_gamma = filter_gamma_map(vh_raw, w=5, looks=4.4)
 
         # Joint FTV-SARP
         I_torch = torch.from_numpy(np.stack([vv_raw, vh_raw], axis=0)).unsqueeze(0).to(device)
@@ -454,37 +473,70 @@ def main():
         f_ftv = R_ftv[0, 0].cpu().numpy()
         vh_ftv = R_ftv[0, 1].cpu().numpy()
 
-        # DL inference
+        # DL inference (симметрично для обоих каналов)
         f_resnet = run_dl_inference(vv_raw, model_resnet)
+        vh_resnet = run_dl_inference(vh_raw, model_resnet)
+
         f_merlin = run_dl_inference(vv_raw, model_merlin)
+        vh_merlin = run_dl_inference(vh_raw, model_merlin)
+
         f_restormer = run_dl_inference(vv_raw, model_restormer)
+        vh_restormer = run_dl_inference(vh_raw, model_restormer)
 
         # Каскадные конвейеры из сетки 1884 тестов
         f_ftv_resnet = run_dl_inference(f_ftv, model_resnet)
+        vh_ftv_resnet = run_dl_inference(vh_ftv, model_resnet)
+
         f_ftv_bilateral = filter_bilateral(f_ftv)
-        t_bil = torch.from_numpy(f_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+        vh_ftv_bilateral = filter_bilateral(vh_ftv)
+
+        t_bil_vv = torch.from_numpy(f_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+        t_bil_vh = torch.from_numpy(vh_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+        t_bil_joint = torch.cat([t_bil_vv, t_bil_vh], dim=1)
         with torch.no_grad():
-            f_bil_ftv = solver_ftv.solve(t_bil, n_iter=15)[0, 0].cpu().numpy()
+            R_bil_ftv = solver_ftv.solve(t_bil_joint, n_iter=15)
+        f_bil_ftv = R_bil_ftv[0, 0].cpu().numpy()
+        vh_bil_ftv = R_bil_ftv[0, 1].cpu().numpy()
         f_bil_ftv_bil = filter_bilateral(f_bil_ftv)
+        vh_bil_ftv_bil = filter_bilateral(vh_bil_ftv)
+
+        # Методы НИР: Robust PCA и DIP
+        L_vv, _ = run_rpca_ialm(vv_raw, max_iter=12)
+        L_vh, _ = run_rpca_ialm(vh_raw, max_iter=12)
+
+        if model_h2 is not None:
+            f_dip_moran = run_dip_eval(vv_raw, model_h2)
+            vh_dip_moran = run_dip_eval(vh_raw, model_h2)
+        else:
+            f_dip_moran, vh_dip_moran = f_gamma, vh_gamma
+
+        if model_h4 is not None:
+            f_dip_sarp = run_dip_eval(vv_raw, model_h4)
+            vh_dip_sarp = run_dip_eval(vh_raw, model_h4)
+        else:
+            f_dip_sarp, vh_dip_sarp = f_gamma, vh_gamma
 
         filter_outputs = {
             "raw": ("0. Входной сигнал со спеклом (Raw RTC)", vv_raw, vh_raw),
-            "boxcar": ("1. Mean / Boxcar 5x5", f_boxcar, vh_raw),
-            "median": ("2. Median 5x5", f_median, vh_raw),
-            "lee": ("3. Классический Lee 5x5", f_lee, vh_raw),
-            "enh_lee": ("4. Enhanced Lee 5x5", f_enh_lee, vh_raw),
-            "kuan": ("5. Kuan 5x5", f_kuan, vh_raw),
-            "frost": ("6. Frost 5x5", f_frost, vh_raw),
-            "enh_frost": ("7. Enhanced Frost 5x5", f_enh_frost, vh_raw),
-            "bilateral": ("8. Bilateral Filter", f_bilateral, vh_raw),
-            "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_raw),
+            "boxcar": ("1. Mean / Boxcar 5x5", f_boxcar, vh_boxcar),
+            "median": ("2. Median 5x5", f_median, vh_median),
+            "lee": ("3. Классический Lee 5x5", f_lee, vh_lee),
+            "enh_lee": ("4. Enhanced Lee 5x5", f_enh_lee, vh_enh_lee),
+            "kuan": ("5. Kuan 5x5", f_kuan, vh_kuan),
+            "frost": ("6. Frost 5x5", f_frost, vh_frost),
+            "enh_frost": ("7. Enhanced Frost 5x5", f_enh_frost, vh_enh_frost),
+            "bilateral": ("8. Bilateral Filter", f_bilateral, vh_bilateral),
+            "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_gamma),
             "ftv": ("10. Новый: Joint FTV-SARP (α=1.25)", f_ftv, vh_ftv),
-            "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_raw),
-            "merlin": ("12. ML: MERLIN Blind-Spot (Dalsasso)", f_merlin, vh_raw),
-            "restormer": ("13. ML: SAR-Restormer (Perera)", f_restormer, vh_raw),
-            "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv),
-            "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv),
-            "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_ftv),
+            "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_resnet),
+            "merlin": ("12. ML: MERLIN Blind-Spot (Dalsasso)", f_merlin, vh_merlin),
+            "restormer": ("13. ML: SAR-Restormer (Perera)", f_restormer, vh_restormer),
+            "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
+            "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
+            "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_bil_ftv_bil),
+            "rpca": ("18. НИР: Robust PCA (Low-Rank L, IALM)", L_vv, L_vh),
+            "dip_moran": ("19. НИР: DIP-Moran (H2, регуляризация I)", f_dip_moran, vh_dip_moran),
+            "dip_sarp": ("20. НИР: DIP-SARP (H4, адаптивные веса)", f_dip_sarp, vh_dip_sarp),
         }
 
         if has_gt:
@@ -677,6 +729,28 @@ def main():
             "img": arr_to_b64(f_bench_bil_ftv_bil),
             "metrics": compute_metrics(im_in, f_bench_bil_ftv_bil, gt_lin=im_gt, looks=4.4)
         }
+
+        # Методы НИР в эталонах
+        L_bench, _ = run_rpca_ialm(im_in, max_iter=12)
+        pairs_dict["rpca"] = {
+            "name": "18. НИР: Robust PCA (Low-Rank L, IALM)",
+            "img": arr_to_b64(L_bench),
+            "metrics": compute_metrics(im_in, L_bench, gt_lin=im_gt, looks=4.4)
+        }
+        if model_h2 is not None:
+            f_bench_moran = run_dip_eval(im_in, model_h2)
+            pairs_dict["dip_moran"] = {
+                "name": "19. НИР: DIP-Moran (H2, регуляризация I)",
+                "img": arr_to_b64(f_bench_moran),
+                "metrics": compute_metrics(im_in, f_bench_moran, gt_lin=im_gt, looks=4.4)
+            }
+        if model_h4 is not None:
+            f_bench_sarp = run_dip_eval(im_in, model_h4)
+            pairs_dict["dip_sarp"] = {
+                "name": "20. НИР: DIP-SARP (H4, адаптивные веса)",
+                "img": arr_to_b64(f_bench_sarp),
+                "metrics": compute_metrics(im_in, f_bench_sarp, gt_lin=im_gt, looks=4.4)
+            }
 
         # Добавляем результаты из самой статьи
         for p_key, (p_label, p_file) in paper_outputs.items():
