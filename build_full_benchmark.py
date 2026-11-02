@@ -179,12 +179,15 @@ def filter_enhanced_frost(im: np.ndarray, w: int = 5, looks: float = 4.4, dampin
     out[mask_hetero] = frost_out[mask_hetero]
     return out
 
-def filter_bilateral(im: np.ndarray, sigma_color: float = 0.15, sigma_space: float = 2.5) -> np.ndarray:
+def filter_bilateral(im: np.ndarray, sigma_color: float = 0.15, sigma_space: float = 2.5, w: int = 5, d: int | None = None, sigma_s: float | None = None, sigma_r: float | None = None) -> np.ndarray:
     import cv2
+    effective_d = d if d is not None else w
+    if sigma_s is not None: sigma_space = float(sigma_s)
+    if sigma_r is not None: sigma_color = float(sigma_r)
     scale = float(np.percentile(im, 99.0))
     if scale < 1e-6: scale = 1.0
     im_norm = (np.clip(im / scale, 0.0, 1.0) * 255.0).astype(np.float32)
-    filtered = cv2.bilateralFilter(im_norm, d=5, sigmaColor=sigma_color * 255.0, sigmaSpace=sigma_space)
+    filtered = cv2.bilateralFilter(im_norm, d=effective_d, sigmaColor=sigma_color * 255.0, sigmaSpace=sigma_space)
     return (filtered / 255.0) * scale
 
 def filter_gamma_map(im: np.ndarray, w: int = 5, looks: float = 4.4) -> np.ndarray:
@@ -339,9 +342,9 @@ def array_to_png_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: st
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
 
 def rgb_composite_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray) -> str:
-    r = np.clip((vv_db - (-25.0)) / (0.0 - (-25.0)), 0.0, 1.0)
-    g = np.clip((vh_db - (-32.0)) / (-8.0 - (-32.0)), 0.0, 1.0)
-    b = np.clip((ratio_db - 2.0) / (18.0 - 2.0), 0.0, 1.0)
+    r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
+    g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
+    b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
     rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     rgb_8u = (rgb * 255.0).astype(np.uint8)
     img = Image.fromarray(rgb_8u, mode="RGB").convert("RGBA")
@@ -364,7 +367,10 @@ def main():
     model_resnet.eval()
 
     model_merlin = SAR_MERLIN_BlindSpot(in_channels=1, num_features=48).to(device)
-    model_merlin.load_state_dict(torch.load(os.path.join(weights_dir, "sar_merlin_blindspot.pth"), map_location=device))
+    p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
+    if not os.path.exists(p_mer):
+        p_mer = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
+    model_merlin.load_state_dict(torch.load(p_mer, map_location=device))
     model_merlin.eval()
 
     model_restormer = SAR_Restormer(in_channels=1, base_dim=32).to(device)
@@ -378,15 +384,19 @@ def main():
             scale = float(np.percentile(im_np, 99.5))
             if scale < 1e-4: scale = float(im_np.max())
             scale = max(scale, 1e-4)
-            t = torch.from_numpy((im_np / scale).astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
-            with torch.amp.autocast('cuda'):
+            norm_im = np.clip(im_np / scale, 0.0, 10.0).astype(np.float32)
+            t = torch.from_numpy(norm_im).unsqueeze(0).unsqueeze(0).to(device)
+            if isinstance(model, SAR_Restormer):
                 out = model(t)
-            res = out.squeeze().cpu().numpy() * scale
-        return np.maximum(res, 1e-6)
+            else:
+                with torch.amp.autocast('cuda'):
+                    out = model(t)
+            res = out.squeeze().float().cpu().numpy() * scale
+        return np.maximum(np.nan_to_num(res, nan=1e-6), 1e-6)
 
     app_data = {}
 
-    from sar_server import run_rpca_ialm, run_dip_eval, model_h2, model_h4
+    from sar_server import run_rpca_ialm
 
     # ---------------------------------------------------------------------
     # ОБРАБОТКА 8 ГЕОПРИВЯЗАННЫХ СЦЕН
@@ -500,21 +510,11 @@ def main():
         f_bil_ftv_bil = filter_bilateral(f_bil_ftv)
         vh_bil_ftv_bil = filter_bilateral(vh_bil_ftv)
 
-        # Методы НИР: Robust PCA и DIP
-        L_vv, _ = run_rpca_ialm(vv_raw, max_iter=12)
-        L_vh, _ = run_rpca_ialm(vh_raw, max_iter=12)
-
-        if model_h2 is not None:
-            f_dip_moran = run_dip_eval(vv_raw, model_h2)
-            vh_dip_moran = run_dip_eval(vh_raw, model_h2)
-        else:
-            f_dip_moran, vh_dip_moran = f_gamma, vh_gamma
-
-        if model_h4 is not None:
-            f_dip_sarp = run_dip_eval(vv_raw, model_h4)
-            vh_dip_sarp = run_dip_eval(vh_raw, model_h4)
-        else:
-            f_dip_sarp, vh_dip_sarp = f_gamma, vh_gamma
+        # Методы НИР: Robust PCA
+        L_vv, S_vv = run_rpca_ialm(vv_raw, max_iter=12)
+        L_vh, S_vh = run_rpca_ialm(vh_raw, max_iter=12)
+        S_vv_abs = np.maximum(np.abs(S_vv), 1e-6)
+        S_vh_abs = np.maximum(np.abs(S_vh), 1e-6)
 
         filter_outputs = {
             "raw": ("0. Входной сигнал со спеклом (Raw RTC)", vv_raw, vh_raw),
@@ -529,14 +529,13 @@ def main():
             "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_gamma),
             "ftv": ("10. Новый: Joint FTV-SARP (α=1.25)", f_ftv, vh_ftv),
             "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_resnet),
-            "merlin": ("12. ML: MERLIN Blind-Spot (Dalsasso)", f_merlin, vh_merlin),
+            "merlin": ("12. ML: MERLIN CNN (Dalsasso et al.)", f_merlin, vh_merlin),
             "restormer": ("13. ML: SAR-Restormer (Perera)", f_restormer, vh_restormer),
             "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
             "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
             "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_bil_ftv_bil),
             "rpca": ("18. НИР: Robust PCA (Low-Rank L, IALM)", L_vv, L_vh),
-            "dip_moran": ("19. НИР: DIP-Moran (H2, регуляризация I)", f_dip_moran, vh_dip_moran),
-            "dip_sarp": ("20. НИР: DIP-SARP (H4, адаптивные веса)", f_dip_sarp, vh_dip_sarp),
+            "rpca_s": ("19. НИР: Robust PCA (Sparse S, цели и корабли)", S_vv_abs, S_vh_abs),
         }
 
         if has_gt:
@@ -731,26 +730,17 @@ def main():
         }
 
         # Методы НИР в эталонах
-        L_bench, _ = run_rpca_ialm(im_in, max_iter=12)
+        L_bench, S_bench = run_rpca_ialm(im_in, max_iter=12)
         pairs_dict["rpca"] = {
             "name": "18. НИР: Robust PCA (Low-Rank L, IALM)",
             "img": arr_to_b64(L_bench),
             "metrics": compute_metrics(im_in, L_bench, gt_lin=im_gt, looks=4.4)
         }
-        if model_h2 is not None:
-            f_bench_moran = run_dip_eval(im_in, model_h2)
-            pairs_dict["dip_moran"] = {
-                "name": "19. НИР: DIP-Moran (H2, регуляризация I)",
-                "img": arr_to_b64(f_bench_moran),
-                "metrics": compute_metrics(im_in, f_bench_moran, gt_lin=im_gt, looks=4.4)
-            }
-        if model_h4 is not None:
-            f_bench_sarp = run_dip_eval(im_in, model_h4)
-            pairs_dict["dip_sarp"] = {
-                "name": "20. НИР: DIP-SARP (H4, адаптивные веса)",
-                "img": arr_to_b64(f_bench_sarp),
-                "metrics": compute_metrics(im_in, f_bench_sarp, gt_lin=im_gt, looks=4.4)
-            }
+        pairs_dict["rpca_s"] = {
+            "name": "19. НИР: Robust PCA (Sparse S, цели)",
+            "img": arr_to_b64(np.maximum(np.abs(S_bench), 1e-6)),
+            "metrics": compute_metrics(im_in, np.maximum(np.abs(S_bench), 1e-6), gt_lin=im_gt, looks=4.4)
+        }
 
         # Добавляем результаты из самой статьи
         for p_key, (p_label, p_file) in paper_outputs.items():

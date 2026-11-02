@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Автономный сервер Sentinel-1 SAR с GPU-ускорением (RTX 3080)
 для произвольных конвейеров фильтрации любой длины,
-включая методы НИР (Robust PCA IALM, DIP-Moran, DIP-SARP, DIP-RFF, DIP-Pure)
-и переключение сезонов (Весна, Лето, Осень, Зима).
+включая параметры фильтров (kwargs), метод НИР (Robust PCA IALM),
+модель MERLIN CNN, и переключение сезонов (Весна, Лето, Осень, Зима).
 
 Запуск:
     D:\\Programs\\Python\\python.exe sar_server.py [порт, по умолчанию 8080]
@@ -30,16 +30,20 @@ from matplotlib import cm
 
 sys.stdout.reconfigure(encoding='utf-8')
 
+# Ограничение видеопамяти VRAM в соответствии с gpu_vram_coordination.md (не более 2.0 ГБ)
+if torch.cuda.is_available():
+    torch.cuda.set_per_process_memory_fraction(0.20, device=0)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[СЕРВЕР] Вычислительное устройство: {device}")
 if torch.cuda.is_available():
     print(f"[СЕРВЕР] Графический процессор: {torch.cuda.get_device_name(0)}")
+    print(f"[СЕРВЕР] Лимит VRAM установлен: 20% (~2048 МБ) для параллельной работы агентов.")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 weights_dir = os.path.join(BASE_DIR, "weights")
 paper_dir = os.path.join(BASE_DIR, "paper_results")
 data_cache_dir = os.path.join(BASE_DIR, "data_cache")
-nir_weights_dir = r"D:\ПРОФ\ВУЗ\ВТСК\НИР\DATA\DIP_TASK\weights"
 
 # -------------------------------------------------------------------------
 # 1. АРХИТЕКТУРЫ СЕТЕЙ
@@ -51,169 +55,30 @@ from build_full_benchmark import (
     filter_gamma_map, JointFTVSARP, compute_metrics, array_to_png_base64
 )
 
-# DIP с GroupNorm (H2 Moran, H4 SARP)
-class ConvBlockGN(nn.Module):
-    def __init__(self, in_c: int, out_c: int):
-        super().__init__()
-        self.conv = nn.Conv2d(in_c, out_c, 3, padding=1, padding_mode='reflect')
-        self.gn = nn.GroupNorm(8, out_c)
-        self.act = nn.LeakyReLU(0.2, inplace=True)
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.act(self.gn(self.conv(x).float()).to(x.dtype))
-
-class DIPUNetGN(nn.Module):
-    def __init__(self, in_c: int = 1, out_c: int = 1, base_filters: int = 64, depth: int = 5):
-        super().__init__()
-        self.enc = nn.ModuleList()
-        self.dec = nn.ModuleList()
-        self.up_convs = nn.ModuleList()
-        self.up = nn.ModuleList()
-        ch = in_c
-        for i in range(depth):
-            out_ch = base_filters * (2 ** i)
-            self.enc.append(nn.Sequential(ConvBlockGN(ch, out_ch), ConvBlockGN(out_ch, out_ch)))
-            ch = out_ch
-        for i in range(depth - 1, 0, -1):
-            in_ch_dec = base_filters * (2 ** i)
-            out_ch_dec = base_filters * (2 ** (i - 1))
-            self.up.append(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False))
-            self.up_convs.append(ConvBlockGN(in_ch_dec, out_ch_dec))
-            self.dec.append(nn.Sequential(ConvBlockGN(out_ch_dec * 2, out_ch_dec), ConvBlockGN(out_ch_dec, out_ch_dec)))
-        self.final = nn.Conv2d(base_filters, out_c, 1)
-        self.pool = nn.AvgPool2d(2)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        s = []
-        for i, l in enumerate(self.enc):
-            x = l(x)
-            if i < 4:
-                s.append(x)
-                x = self.pool(x)
-        for i, (u, uc, l) in enumerate(zip(self.up, self.up_convs, self.dec)):
-            skip = s[-(i + 1)]
-            x = uc(u(x))
-            if x.shape != skip.shape:
-                x = F.interpolate(x, size=skip.shape[2:], mode='bilinear', align_corners=False)
-            x = l(torch.cat([x, skip], dim=1))
-        return self.final(x)
-
-# DIP Pure (H1)
-class DIPUNetPure(nn.Module):
-    def __init__(self, in_c: int = 1, out_c: int = 1, base_filters: int = 64, depth: int = 5):
-        super().__init__()
-        self.enc = nn.ModuleList()
-        self.dec = nn.ModuleList()
-        self.up_convs = nn.ModuleList()
-        self.up = nn.ModuleList()
-        ch = in_c
-        for i in range(depth):
-            out_ch = base_filters * (2 ** i)
-            self.enc.append(nn.Sequential(
-                nn.Conv2d(ch, out_ch, 3, padding=1, padding_mode='reflect'),
-                nn.LeakyReLU(0.2, inplace=True),
-                nn.Conv2d(out_ch, out_ch, 3, padding=1, padding_mode='reflect'),
-                nn.LeakyReLU(0.2, inplace=True)
-            ))
-            ch = out_ch
-        for i in range(depth - 1, 0, -1):
-            in_ch_dec = base_filters * (2 ** i)
-            out_ch_dec = base_filters * (2 ** (i - 1))
-            self.up.append(nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False))
-            self.up_convs.append(nn.Conv2d(in_ch_dec, out_ch_dec, 3, padding=1, padding_mode='reflect'))
-            self.dec.append(nn.Sequential(
-                nn.Conv2d(out_ch_dec * 2, out_ch_dec, 3, padding=1, padding_mode='reflect'),
-                nn.LeakyReLU(0.2, inplace=True),
-                nn.Conv2d(out_ch_dec, out_ch_dec, 3, padding=1, padding_mode='reflect'),
-                nn.LeakyReLU(0.2, inplace=True)
-            ))
-        self.final = nn.Conv2d(base_filters, out_c, 1)
-        self.pool = nn.AvgPool2d(2)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        s = []
-        for i, l in enumerate(self.enc):
-            x = l(x)
-            if i < 4:
-                s.append(x)
-                x = self.pool(x)
-        for i, (u, uc, l) in enumerate(zip(self.up, self.up_convs, self.dec)):
-            skip = s[-(i + 1)]
-            x = uc(u(x))
-            if x.shape != skip.shape:
-                x = F.interpolate(x, size=skip.shape[2:], mode='bilinear', align_corners=False)
-            x = l(torch.cat([x, skip], dim=1))
-        return self.final(x)
-
-# Random Fourier Features + U-Net для RFF-DIP
-class RandomFourierFeatures(nn.Module):
-    def __init__(self, in_features: int = 2, num_features: int = 16, sigma: float = 8.0):
-        super().__init__()
-        b_mat = torch.randn(num_features, in_features) * sigma
-        self.B = nn.Parameter(b_mat, requires_grad=False)
-
-    def forward(self, coords: torch.Tensor) -> torch.Tensor:
-        proj = 2.0 * math.pi * torch.einsum("nc,bchw->bnhw", self.B, coords)
-        return torch.cat([torch.cos(proj), torch.sin(proj)], dim=1)
-
-class SARUNetRFF(nn.Module):
-    def __init__(self, in_ch: int = 32, out_ch: int = 1):
-        super().__init__()
-        self.enc1 = nn.Sequential(nn.Conv2d(in_ch, 32, 3, padding=1), nn.InstanceNorm2d(32), nn.LeakyReLU(0.2))
-        self.enc2 = nn.Sequential(nn.Conv2d(32, 64, 3, stride=2, padding=1), nn.InstanceNorm2d(64), nn.LeakyReLU(0.2))
-        self.dec1 = nn.Sequential(nn.Conv2d(64 + 32, 32, 3, padding=1), nn.InstanceNorm2d(32), nn.LeakyReLU(0.2))
-        self.out = nn.Conv2d(32, out_ch, 1)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        e1 = self.enc1(x)
-        e2 = self.enc2(e1)
-        d1 = F.interpolate(e2, size=e1.shape[2:], mode="bilinear", align_corners=False)
-        d1 = self.dec1(torch.cat([d1, e1], dim=1))
-        return self.out(d1)
-
 # -------------------------------------------------------------------------
 # 2. ИНИЦИАЛИЗАЦИЯ И ЗАГРУЗКА ВЕСОВ МОДЕЛЕЙ
 # -------------------------------------------------------------------------
 model_res = SAR_ResNet(in_channels=1, num_features=64, num_layers=17).to(device).eval()
-model_res.load_state_dict(torch.load(os.path.join(weights_dir, "sar_resnet_vitale.pth"), map_location=device))
+p_res = os.path.join(weights_dir, "sar_resnet_vitale.pth")
+if os.path.exists(p_res):
+    model_res.load_state_dict(torch.load(p_res, map_location=device))
+    print(f"[СЕРВЕР] SAR-ResNet веса загружены: {p_res}")
 
 model_mer = SAR_MERLIN_BlindSpot(in_channels=1, num_features=48).to(device).eval()
-model_mer.load_state_dict(torch.load(os.path.join(weights_dir, "sar_merlin_blindspot.pth"), map_location=device))
+p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
+if not os.path.exists(p_mer):
+    p_mer = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
+if os.path.exists(p_mer):
+    model_mer.load_state_dict(torch.load(p_mer, map_location=device))
+    print(f"[СЕРВЕР] MERLIN CNN веса загружены: {p_mer}")
 
 model_rst = SAR_Restormer(in_channels=1, base_dim=32).to(device).eval()
-model_rst.load_state_dict(torch.load(os.path.join(weights_dir, "sar_restormer.pth"), map_location=device))
+p_rst = os.path.join(weights_dir, "sar_restormer.pth")
+if os.path.exists(p_rst):
+    model_rst.load_state_dict(torch.load(p_rst, map_location=device))
+    print(f"[СЕРВЕР] SAR-Restormer веса загружены: {p_rst}")
 
-solver_ftv = JointFTVSARP(alpha=1.25, K=11, device=device)
-
-# Загрузка моделей НИР
-model_h1 = None
-p_h1 = os.path.join(nir_weights_dir, "h1_pure_dip.pt")
-if os.path.exists(p_h1):
-    try:
-        model_h1 = DIPUNetPure().to(device).eval()
-        model_h1.load_state_dict(torch.load(p_h1, map_location=device)["state_dict"])
-        print("[СЕРВЕР] DIP-Pure (H1) веса загружены.")
-    except Exception as e:
-        print(f"[СЕРВЕР ПРЕДУПРЕЖДЕНИЕ] H1 DIP: {e}")
-
-model_h2 = None
-p_h2 = os.path.join(nir_weights_dir, "h2_moran_dip.pt")
-if os.path.exists(p_h2):
-    try:
-        model_h2 = DIPUNetGN().to(device).eval()
-        model_h2.load_state_dict(torch.load(p_h2, map_location=device)["state_dict"])
-        print("[СЕРВЕР] DIP-Moran (H2) веса загружены.")
-    except Exception as e:
-        print(f"[СЕРВЕР ПРЕДУПРЕЖДЕНИЕ] H2 Moran DIP: {e}")
-
-model_h4 = None
-p_h4 = os.path.join(nir_weights_dir, "h4_sarp_dip.pt")
-if os.path.exists(p_h4):
-    try:
-        model_h4 = DIPUNetGN().to(device).eval()
-        model_h4.load_state_dict(torch.load(p_h4, map_location=device)["state_dict"])
-        print("[СЕРВЕР] DIP-SARP (H4) веса загружены.")
-    except Exception as e:
-        print(f"[СЕРВЕР ПРЕДУПРЕЖДЕНИЕ] H4 SARP DIP: {e}")
+solver_ftv_default = JointFTVSARP(alpha=1.25, K=11, device=device)
 
 # -------------------------------------------------------------------------
 # 3. МАТЕМАТИЧЕСКИЕ ОПЕРАТОРЫ И АЛГОРИТМЫ
@@ -222,33 +87,23 @@ if os.path.exists(p_h4):
 def run_dl(im_np: np.ndarray, model: nn.Module) -> np.ndarray:
     with torch.no_grad():
         scale = float(np.percentile(im_np, 99.5))
-        if scale < 1e-4: scale = float(im_np.max())
+        if scale < 1e-4:
+            scale = float(im_np.max())
         scale = max(scale, 1e-4)
-        t = torch.from_numpy((im_np / scale).astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
-        with torch.amp.autocast('cuda'):
+        norm_im = np.clip(im_np / scale, 0.0, 10.0).astype(np.float32)
+        t = torch.from_numpy(norm_im).unsqueeze(0).unsqueeze(0).to(device)
+        if isinstance(model, SAR_Restormer):
             out = model(t)
+        else:
+            with torch.amp.autocast('cuda'):
+                out = model(t)
         res = out.squeeze().float().cpu().numpy() * scale
-    return np.maximum(res.astype(np.float32), 1e-6)
-
-def run_dip_eval(im_np: np.ndarray, model: nn.Module) -> np.ndarray:
-    """Вычисление отклика DIP с паддингом до кратности 32."""
-    H, W = im_np.shape
-    pad_h = (32 - (H % 32)) % 32
-    pad_w = (32 - (W % 32)) % 32
-    scale = float(np.percentile(im_np, 99.5))
-    if scale < 1e-4: scale = float(im_np.max())
-    scale = max(scale, 1e-4)
-    norm = (im_np / scale).astype(np.float32)
-    padded = np.pad(norm, ((0, pad_h), (0, pad_w)), mode='reflect')
-    t = torch.from_numpy(padded).unsqueeze(0).unsqueeze(0).to(device)
-    with torch.no_grad():
-        with torch.amp.autocast('cuda'):
-            out = model(t)
-        res = out.squeeze().float().cpu().numpy()[:H, :W] * scale
-    return np.maximum(res.astype(np.float32), 1e-6)
+    return np.maximum(np.nan_to_num(res, nan=1e-6).astype(np.float32), 1e-6)
 
 def run_rpca_ialm(im_np: np.ndarray, max_iter: int = 12, tol: float = 5e-4) -> tuple[np.ndarray, np.ndarray]:
-    """Inexact ALM (IALM) метод робастных главных компонент: Y = L + S."""
+    """Inexact ALM (IALM) метод робастных главных компонент: Y = L + S.
+    L - гладкий низкоранговый фон ландшафта, S - разреженные точечные цели.
+    """
     Y = torch.from_numpy(im_np.astype(np.float32)).to(device)
     M, N = Y.shape
     lmbda = 1.0 / np.sqrt(max(M, N))
@@ -288,69 +143,39 @@ def run_rpca_ialm(im_np: np.ndarray, max_iter: int = 12, tol: float = 5e-4) -> t
     S_np = S.cpu().numpy()
     return L_np, S_np
 
-def run_rff_dip_single(im_np: np.ndarray, n_iter: int = 25) -> np.ndarray:
-    """Random Fourier Features DIP с оптимизацией вариационной структуры."""
-    H, W = im_np.shape
-    y_g, x_g = torch.meshgrid(torch.linspace(-1, 1, H, device=device), torch.linspace(-1, 1, W, device=device), indexing="ij")
-    coords = torch.stack([x_g, y_g], dim=0).unsqueeze(0)
-    rff = RandomFourierFeatures(in_features=2, num_features=16, sigma=8.0).to(device)
-    net = SARUNetRFF(in_ch=32, out_ch=1).to(device)
-    z = rff(coords)
-
-    t_im = torch.clamp(torch.from_numpy(im_np.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device), min=1e-6)
-    opt = torch.optim.Adam(net.parameters(), lr=2e-3)
-    psi_target = 0.255036
-
-    for _ in range(n_iter):
-        opt.zero_grad()
-        p_log = net(z)
-        p_R = torch.exp(p_log)
-        l_nll = (p_log + t_im / p_R).mean()
-        res_log = torch.log(t_im) - p_log
-        diff_x = res_log[:, :, :, 1:] - res_log[:, :, :, :-1]
-        diff_y = res_log[:, :, 1:, :] - res_log[:, :, :-1, :]
-        gamma_1 = 0.5 * (diff_x.pow(2).mean() + diff_y.pow(2).mean())
-        loss = l_nll + 2.0 * (gamma_1 - psi_target).pow(2)
-        loss.backward()
-        opt.step()
-
-    with torch.no_grad():
-        out = torch.exp(net(z))
-        scale = t_im.mean() / out.mean()
-        out = out * scale
-    return torch.clamp(out.squeeze(), min=1e-6).cpu().numpy()
-
-def run_ftv(im_np: np.ndarray) -> np.ndarray:
+def run_ftv(im_np: np.ndarray, alpha: float = 1.25, n_iter: int = 15, K: int = 11) -> np.ndarray:
+    if abs(alpha - 1.25) < 1e-3 and K == 11:
+        solver = solver_ftv_default
+    else:
+        solver = JointFTVSARP(alpha=alpha, K=K, device=device)
     t = torch.from_numpy(im_np.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
     with torch.no_grad():
-        out = solver_ftv.solve(t, n_iter=15)
+        out = solver.solve(t, n_iter=n_iter)
     return out[0, 0].cpu().numpy()
 
 OPERATORS = {
-    # 1. Классические локальные фильтры
-    "BXC": lambda x: filter_boxcar_mean(x, w=5),
-    "MED": lambda x: filter_median(x, w=5),
-    "LEE": lambda x: filter_lee(x, w=5, looks=4.4),
-    "ENH_LEE": lambda x: filter_enhanced_lee(x, w=5, looks=4.4),
-    "KUA": lambda x: filter_kuan(x, w=5, looks=4.4),
-    "FRO": lambda x: filter_frost(x, w=5, damping=2.0),
-    "ENH_FRO": lambda x: filter_enhanced_frost(x, w=5, looks=4.4, damping=2.0),
-    "BIL": lambda x: filter_bilateral(x),
-    "GMAP": lambda x: filter_gamma_map(x, w=5, looks=4.4),
+    # 1. Классические локальные фильтры с поддержкой kwargs
+    "BXC": lambda x, **kw: filter_boxcar_mean(x, w=int(kw.get("w", 5))),
+    "MED": lambda x, **kw: filter_median(x, w=int(kw.get("w", 5))),
+    "LEE": lambda x, **kw: filter_lee(x, w=int(kw.get("w", 5)), looks=float(kw.get("looks", 4.4))),
+    "ENH_LEE": lambda x, **kw: filter_enhanced_lee(x, w=int(kw.get("w", 5)), looks=float(kw.get("looks", 4.4)), k=float(kw.get("k", 1.0))),
+    "KUA": lambda x, **kw: filter_kuan(x, w=int(kw.get("w", 5)), looks=float(kw.get("looks", 4.4))),
+    "FRO": lambda x, **kw: filter_frost(x, w=int(kw.get("w", 5)), damping=float(kw.get("damping", 2.0))),
+    "ENH_FRO": lambda x, **kw: filter_enhanced_frost(x, w=int(kw.get("w", 5)), looks=float(kw.get("looks", 4.4)), damping=float(kw.get("damping", 2.0))),
+    "BIL": lambda x, **kw: filter_bilateral(x, w=int(kw.get("w", 5)), sigma_s=float(kw.get("sigma_s", 2.0)), sigma_r=float(kw.get("sigma_r", 0.15))),
+    "GMAP": lambda x, **kw: filter_gamma_map(x, w=int(kw.get("w", 5)), looks=float(kw.get("looks", 4.4))),
 
-    # 2. Вариационные и глубокие нейросетевые модели (из статей)
-    "FTV": run_ftv,
-    "RES": lambda x: run_dl(x, model_res),
-    "MER": lambda x: run_dl(x, model_mer),
-    "RST": lambda x: run_dl(x, model_rst),
+    # 2. Вариационный метод дробного порядка FTV-SARP
+    "FTV": lambda x, **kw: run_ftv(x, alpha=float(kw.get("alpha", 1.25)), n_iter=int(kw.get("n_iter", 15)), K=int(kw.get("K", 11))),
 
-    # 3. Инновации из НИР (RPCA, DIP-Moran, DIP-SARP, DIP-Pure, DIP-RFF)
-    "RPCA": lambda x: run_rpca_ialm(x)[0],
-    "RPCA_S": lambda x: np.maximum(im_np_raw_diff := np.abs(run_rpca_ialm(x)[1]), 1e-6),
-    "DIP_MORAN": lambda x: run_dip_eval(x, model_h2) if model_h2 is not None else filter_gamma_map(x, w=5),
-    "DIP_SARP": lambda x: run_dip_eval(x, model_h4) if model_h4 is not None else filter_gamma_map(x, w=5),
-    "DIP_PURE": lambda x: run_dip_eval(x, model_h1) if model_h1 is not None else filter_boxcar_mean(x, w=5),
-    "DIP_RFF": lambda x: run_rff_dip_single(x, n_iter=25),
+    # 3. Глубокие нейросетевые модели
+    "RES": lambda x, **kw: run_dl(x, model_res),
+    "MER": lambda x, **kw: run_dl(x, model_mer),
+    "RST": lambda x, **kw: run_dl(x, model_rst),
+
+    # 4. Аналитический метод НИР (Robust PCA IALM)
+    "RPCA": lambda x, **kw: run_rpca_ialm(x, max_iter=int(kw.get("max_iter", 12)), tol=float(kw.get("tol", 5e-4)))[0],
+    "RPCA_S": lambda x, **kw: np.maximum(np.abs(run_rpca_ialm(x, max_iter=int(kw.get("max_iter", 12)), tol=float(kw.get("tol", 5e-4)))[1]), 1e-6),
 }
 
 # -------------------------------------------------------------------------
@@ -380,7 +205,6 @@ BENCH_CACHE = {
 GIS_KEYS = ["benevento", "rome", "serre_poncon", "forest", "city", "water", "desert", "mountain"]
 
 for k in GIS_KEYS:
-    # 1. Проверяем сезонный файл
     seasons_p = os.path.join(data_cache_dir, f"seasons_{k}.npz")
     raw_p = os.path.join(data_cache_dir, f"raw_{k}.npz")
 
@@ -395,7 +219,6 @@ for k in GIS_KEYS:
                     "vh": s_data[f"{s}_vh"],
                     "date": str(s_data[f"{s}_date"]),
                 }
-        # Устанавливаем дефолтное состояние (весна)
         default_s = "spring" if "spring" in sc_dict["seasons"] else list(sc_dict["seasons"].keys())[0]
         sc_dict["vv"] = sc_dict["seasons"][default_s]["vv"]
         sc_dict["vh"] = sc_dict["seasons"][default_s]["vh"]
@@ -413,19 +236,21 @@ for k in GIS_KEYS:
     RAW_CACHE[k] = sc_dict
 
 print(f"[СЕРВЕР] Инициализирован кэш GIS полигонов ({len(RAW_CACHE)}/8): {list(RAW_CACHE.keys())}")
-for k, v in RAW_CACHE.items():
-    s_keys = list(v.get("seasons", {}).keys())
-    print(f"  • {k:13s}: сезоны = {s_keys}, форма = {v['vv'].shape}")
 
 # -------------------------------------------------------------------------
 # 5. КОМПОЗИТЫ И ЦВЕТОВОЕ ОТОБРАЖЕНИЕ
 # -------------------------------------------------------------------------
 
-def rgb_composite_base64_fixed(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray) -> str:
-    """Физически откалиброванный поляриметрический RGB-композит без синего насыщения."""
-    r = np.clip((vv_db - (-25.0)) / (0.0 - (-25.0)), 0.0, 1.0)
-    g = np.clip((vh_db - (-32.0)) / (-8.0 - (-32.0)), 0.0, 1.0)
-    b = np.clip((ratio_db - 2.0) / (18.0 - 2.0), 0.0, 1.0)
+def rgb_composite_base64_calibrated(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray) -> str:
+    """Точно откалиброванный поляриметрический RGB-композит:
+    R = clip((VV - (-18)) / (-2 - (-18)), 0, 1)
+    G = clip((VH - (-24)) / (-8 - (-24)), 0, 1)
+    B = clip((Ratio - 2) / (14 - 2), 0, 1)
+    Сохраняет естественные радиолокационные тени, крутые склоны и дюны в синем спектре.
+    """
+    r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
+    g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
+    b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
     rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     rgb_8u = (rgb * 255.0).astype(np.uint8)
     img = Image.fromarray(rgb_8u, mode="RGB").convert("RGBA")
@@ -433,32 +258,20 @@ def rgb_composite_base64_fixed(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: n
     img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
 
-def execute_pipeline(im_start: np.ndarray, stages: list[str]) -> np.ndarray:
+def execute_pipeline(im_start: np.ndarray, stages: list[Any]) -> np.ndarray:
     curr = im_start.copy()
     for s in stages:
-        op = s.strip().upper()
+        if isinstance(s, dict):
+            op = s.get("op", "").strip().upper()
+            kw = s.get("kwargs", {})
+        else:
+            op = str(s).strip().upper()
+            kw = {}
         if op in OPERATORS:
-            curr = OPERATORS[op](curr)
+            curr = OPERATORS[op](curr, **kw)
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return curr
-
-def generate_layer_b64(vv_arr: np.ndarray, vh_arr: np.ndarray, layer_type: str) -> str:
-    """Генерация base64 изображения для заданного слоя."""
-    if layer_type == "rgb":
-        vv_db = 10.0 * np.log10(np.maximum(vv_arr, 1e-6))
-        vh_db = 10.0 * np.log10(np.maximum(vh_arr, 1e-6))
-        ratio_db = vv_db - vh_db
-        return rgb_composite_base64_fixed(vv_db, vh_db, ratio_db)
-    elif layer_type == "ratio":
-        vv_db = 10.0 * np.log10(np.maximum(vv_arr, 1e-6))
-        vh_db = 10.0 * np.log10(np.maximum(vh_arr, 1e-6))
-        ratio_db = vv_db - vh_db
-        return array_to_png_base64(ratio_db, 0.0, 20.0, cmap_name="viridis")
-    elif layer_type == "vh":
-        vh_db = 10.0 * np.log10(np.maximum(vh_arr, 1e-6))
-        return array_to_png_base64(vh_db, -32.0, -8.0)
-    else: # "vv"
-        vv_db = 10.0 * np.log10(np.maximum(vv_arr, 1e-6))
-        return array_to_png_base64(vv_db, -25.0, 0.0)
 
 # -------------------------------------------------------------------------
 # 6. HTTP ОБРАБОТЧИК ЗАПРОСОВ
@@ -490,7 +303,7 @@ class SARRequestHandler(SimpleHTTPRequestHandler):
 
                 if mode == "bench":
                     if target_id not in BENCH_CACHE:
-                        raise ValueError(f"Неизвестный бенчмарк: '{target_id}'. Доступны: {list(BENCH_CACHE.keys())}")
+                        raise ValueError(f"Неизвестный эталон: '{target_id}'. Доступны: {list(BENCH_CACHE.keys())}")
                     b_data = BENCH_CACHE[target_id]
                     im_raw = b_data["raw"]
                     im_gt = b_data["gt"]
@@ -532,7 +345,7 @@ class SARRequestHandler(SimpleHTTPRequestHandler):
                         vv_db = 10.0 * np.log10(np.maximum(im_vv_filt, 1e-6))
                         vh_db = 10.0 * np.log10(np.maximum(im_vh_filt, 1e-6))
                         ratio_db = vv_db - vh_db
-                        b64 = rgb_composite_base64_fixed(vv_db, vh_db, ratio_db)
+                        b64 = rgb_composite_base64_calibrated(vv_db, vh_db, ratio_db)
                         m = compute_metrics(vv_input, im_vv_filt, gt_lin=sc_data.get("gt"))
                     elif layer == "ratio":
                         vv_db = 10.0 * np.log10(np.maximum(im_vv_filt, 1e-6))

@@ -242,6 +242,67 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .stage-del-btn:hover {
             background: #e53935;
         }
+        .stage-box {
+            display: flex;
+            flex-direction: column;
+            background: #181824;
+            border: 1px solid #2d2d3f;
+            border-radius: 4px;
+            padding: 4px 6px;
+            gap: 4px;
+        }
+        .stage-settings-btn {
+            background: #263238;
+            border: 1px solid #455a64;
+            color: #eceff1;
+            border-radius: 3px;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .stage-settings-btn:hover {
+            background: #37474f;
+            border-color: #8c9eff;
+        }
+        .stage-settings-btn.active {
+            background: #3949ab;
+            border-color: #8c9eff;
+            color: #ffffff;
+        }
+        .kwarg-drawer {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #101018;
+            border: 1px solid #282838;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 0.70rem;
+            margin-top: 2px;
+        }
+        .kwarg-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .kwarg-label {
+            color: #9fa8da;
+        }
+        .kwarg-input {
+            background: #1b1b26;
+            border: 1px solid #3c3c52;
+            color: #e0e0e0;
+            border-radius: 3px;
+            padding: 2px 4px;
+            font-size: 0.70rem;
+            text-align: right;
+        }
         .action-btn {
             padding: 6px 10px;
             font-size: 0.72rem;
@@ -373,16 +434,33 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <!-- GIS MODE CONTROLS -->
         <div id="gis-controls" style="display: flex; flex-direction: column; gap: 12px;">
             <div class="section">
-                <div class="section-title">1. Полигон ландшафта и Сезон</div>
+                <div class="section-title">1. Полигон ландшафта, Сезон и Подложка</div>
                 <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Полигон:</div>
                 <select id="quadrant-select" style="margin-bottom: 8px;"></select>
+
                 <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Сезон (Sentinel-1 RTC временной срез):</div>
-                <select id="season-select" onchange="onSeasonChange(this.value)">
+                <select id="season-select" onchange="onSeasonChange(this.value)" style="margin-bottom: 8px;">
                     <option value="spring">Весна (Апрель/Май, активная вегетация)</option>
                     <option value="summer">Лето (Июль/Август, засушливый период)</option>
                     <option value="autumn">Осень (Октябрь/Ноябрь, увлажненная почва)</option>
                     <option value="winter">Зима (Январь/Февраль, промерзание/снежный покров)</option>
                 </select>
+
+                <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Оптическая подложка карты:</div>
+                <select id="basemap-select" onchange="onBasemapChange(this.value)" style="margin-bottom: 4px;">
+                    <option value="seasonal_gibs">🌍 Сезонная оптическая (NASA GIBS TrueColor под выбранный сезон)</option>
+                    <option value="esri">🛰️ Esri World Imagery (Высокое разрешение)</option>
+                    <option value="osm">🗺️ OpenStreetMap (Картографическая схема)</option>
+                    <option value="none">⬛ Отключить подложку (Темный фон)</option>
+                </select>
+                <div id="basemap-date-badge" style="font-size: 0.70rem; color: #80cbc4; margin-bottom: 8px;">📅 Дата оптической подложки: 2023-04-15 (Синхронизировано с сезоном)</div>
+
+                <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px; display: flex; justify-content: space-between;">
+                    <span>Прозрачность слоя SAR:</span>
+                    <span id="sar-opacity-val" style="color: #69f0ae; font-weight: bold;">100%</span>
+                </div>
+                <input type="range" id="sar-opacity-slider" min="10" max="100" value="100" style="width: 100%; margin-bottom: 8px;" oninput="onSarOpacityChange(this.value)">
+
                 <div id="quadrant-desc" class="desc-box"></div>
             </div>
 
@@ -410,14 +488,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <div class="preset-pill-bar">
                         <button class="preset-pill" onclick="applyPreset(['FTV', 'RES'])">FTV → RES (Парето)</button>
                         <button class="preset-pill" onclick="applyPreset(['RPCA', 'RES'])">RPCA → RES (НИР)</button>
-                        <button class="preset-pill" onclick="applyPreset(['FTV', 'DIP_MORAN'])">FTV → DIP-Moran</button>
-                        <button class="preset-pill" onclick="applyPreset(['DIP_SARP'])">DIP-SARP (H4)</button>
+                        <button class="preset-pill" onclick="applyPreset(['FTV', 'MER'])">FTV → MERLIN CNN</button>
                         <button class="preset-pill" onclick="applyPreset(['RPCA', 'BIL'])">RPCA → BIL</button>
                         <button class="preset-pill" onclick="applyPreset(['BIL', 'FTV', 'BIL'])">BIL → FTV → BIL</button>
+                        <button class="preset-pill" onclick="applyPreset(['RST', 'RES'])">Restormer → ResNet</button>
                     </div>
 
-                    <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (любая длина):</div>
-                    <div id="custom-stages-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;"></div>
+                    <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (с настройкой kwargs):</div>
+                    <div id="custom-stages-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto;"></div>
 
                     <div style="display: flex; gap: 6px;">
                         <button class="action-btn" onclick="addCustomStage()" style="flex: 2; background: #283593;">➕ Добавить этап</button>
@@ -533,13 +611,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <div class="preset-pill-bar">
                         <button class="preset-pill" onclick="applyBenchPreset(['FTV', 'RES'])">FTV → RES</button>
                         <button class="preset-pill" onclick="applyBenchPreset(['RPCA', 'RES'])">RPCA → RES</button>
-                        <button class="preset-pill" onclick="applyBenchPreset(['DIP_MORAN'])">DIP-Moran</button>
+                        <button class="preset-pill" onclick="applyBenchPreset(['FTV', 'MER'])">FTV → MERLIN CNN</button>
                         <button class="preset-pill" onclick="applyBenchPreset(['FTV', 'BIL'])">FTV → BIL</button>
                         <button class="preset-pill" onclick="applyBenchPreset(['BIL', 'FTV', 'BIL'])">BIL → FTV → BIL</button>
+                        <button class="preset-pill" onclick="applyBenchPreset(['RST', 'RES'])">Restormer → ResNet</button>
                     </div>
 
-                    <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (любая длина):</div>
-                    <div id="bench-custom-stages-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;"></div>
+                    <div style="font-size: 0.72rem; color: #c5cae9; font-weight: 600;">Последовательность этапов (с настройкой kwargs):</div>
+                    <div id="bench-custom-stages-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto;"></div>
 
                     <div style="display: flex; gap: 6px;">
                         <button class="action-btn" onclick="addBenchCustomStage()" style="flex: 2; background: #283593;">➕ Добавить этап</button>
@@ -643,39 +722,88 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         // Custom Cascade State for Layer B (GIS mode)
         let bMode = "preset"; // "preset" | "custom"
-        let customStages = ["FTV", "RES"];
         let isCustomBActive = false;
         let customBImageUrl = null;
         let customBMetrics = null;
 
         // Custom Cascade State for Layer B (Benchmark mode)
         let benchBMode = "preset";
-        let benchCustomStages = ["FTV", "RES"];
         let isBenchCustomBActive = false;
         let benchCustomBImageUrl = null;
         let benchCustomBMetrics = null;
 
         const FILTER_OPTIONS = [
             { id: "FTV", name: "Joint FTV-SARP (α=1.25, SARP)" },
-            { id: "RES", name: "ML: SAR-ResNet (Vitale)" },
-            { id: "RST", name: "ML: SAR-Restormer (Perera)" },
-            { id: "MER", name: "ML: MERLIN Blind-Spot (Dalsasso)" },
+            { id: "RES", name: "ML: SAR-ResNet (Vitale et al.)" },
+            { id: "MER", name: "ML: MERLIN CNN (Dalsasso et al.)" },
+            { id: "RST", name: "ML: SAR-Restormer (Perera et al.)" },
             { id: "RPCA", name: "НИР: Robust PCA (Low-Rank L, IALM)" },
-            { id: "RPCA_S", name: "НИР: Robust PCA (Sparse S, маска выбросов)" },
-            { id: "DIP_MORAN", name: "НИР: DIP-Moran (H2, регуляризация I)" },
-            { id: "DIP_SARP", name: "НИР: DIP-SARP (H4, адаптивные веса)" },
-            { id: "DIP_PURE", name: "НИР: DIP-Pure (H1, U-Net Hourglass)" },
-            { id: "DIP_RFF", name: "НИР: DIP-RFF (H7, Фурье + вариограмма)" },
-            { id: "BIL", name: "Bilateral Filter (5x5)" },
-            { id: "LEE", name: "Lee Filter (5x5)" },
-            { id: "ENH_LEE", name: "Enhanced Lee (5x5)" },
-            { id: "KUA", name: "Kuan Filter (5x5)" },
-            { id: "FRO", name: "Frost Filter (5x5)" },
-            { id: "ENH_FRO", name: "Enhanced Frost (5x5)" },
-            { id: "GMAP", name: "Gamma MAP (5x5)" },
-            { id: "MED", name: "Median (5x5)" },
-            { id: "BXC", name: "Boxcar Mean (5x5)" }
+            { id: "RPCA_S", name: "НИР: Robust PCA (Sparse S, цели и корабли)" },
+            { id: "BIL", name: "Bilateral Filter" },
+            { id: "LEE", name: "Lee Filter" },
+            { id: "ENH_LEE", name: "Enhanced Lee" },
+            { id: "KUA", name: "Kuan Filter" },
+            { id: "FRO", name: "Frost Filter" },
+            { id: "ENH_FRO", name: "Enhanced Frost" },
+            { id: "GMAP", name: "Gamma MAP" },
+            { id: "MED", name: "Median" },
+            { id: "BXC", name: "Boxcar Mean" }
         ];
+
+        function getDefaultKwargs(op) {
+            switch (op) {
+                case "BXC": return { w: 5 };
+                case "MED": return { w: 5 };
+                case "LEE": return { w: 5, looks: 4.4 };
+                case "ENH_LEE": return { w: 5, looks: 4.4, k: 1.0 };
+                case "KUA": return { w: 5, looks: 4.4 };
+                case "FRO": return { w: 5, damping: 2.0 };
+                case "ENH_FRO": return { w: 5, looks: 4.4, damping: 2.0 };
+                case "BIL": return { w: 5, sigma_s: 2.0, sigma_r: 0.15 };
+                case "GMAP": return { w: 5, looks: 4.4 };
+                case "FTV": return { alpha: 1.25, n_iter: 15, K: 11 };
+                case "RPCA": return { max_iter: 12, tol: 0.0005 };
+                case "RPCA_S": return { max_iter: 12, tol: 0.0005 };
+                case "RES": return { _model: true, arch: "SAR-ResNet (17 слоев)", features: 64, weights: "sar_resnet_vitale.pth", info: "Обучена на синтетических текстурах BSDS500 + Sentinel-1 50-looks GEE." };
+                case "MER": return { _model: true, arch: "MERLIN CNN (U-Net)", features: 48, depth: 3, weights: "sar_merlin_cnn.pth", info: "Обучена на реальных Sentinel-1 RTC патчах. Сохраняет темные тени и дюны." };
+                case "RST": return { _model: true, arch: "SAR-Restormer (Трансформер)", base_dim: 32, heads: 4, weights: "sar_restormer.pth", info: "Внимание MDTA + блок GDFN. Инференс в детерминированном FP32." };
+                default: return {};
+            }
+        }
+
+        function normalizeStage(s) {
+            if (typeof s === 'string') {
+                const op = s.toUpperCase();
+                return { op, kwargs: getDefaultKwargs(op), openSettings: false };
+            }
+            const op = (s.op || "FTV").toUpperCase();
+            return {
+                op,
+                kwargs: s.kwargs ? { ...s.kwargs } : getDefaultKwargs(op),
+                openSettings: !!s.openSettings
+            };
+        }
+
+        let customStages = [
+            normalizeStage("FTV"),
+            normalizeStage("RES")
+        ];
+
+        let benchCustomStages = [
+            normalizeStage("FTV"),
+            normalizeStage("RES")
+        ];
+
+        // Базовые картографические слои и сезонная оптическая синхронизация
+        const seasonalDates = {
+            "spring": "2023-04-15",
+            "summer": "2023-07-15",
+            "autumn": "2023-10-15",
+            "winter": "2023-01-15"
+        };
+        let currentBasemapType = "seasonal_gibs";
+        let currentSarOpacity = 1.0;
+        let baseTileLayer = null;
 
         const qSelect = document.getElementById('quadrant-select');
         qSelect.innerHTML = quadKeys.map(k => `<option value="${k}">${DATA[k].title}</option>`).join('');
@@ -687,10 +815,55 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             zoomControl: true
         });
 
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 18,
-            attribution: 'Tiles &copy; Esri'
-        }).addTo(map);
+        function updateBasemapTileLayer() {
+            if (baseTileLayer) {
+                map.removeLayer(baseTileLayer);
+                baseTileLayer = null;
+            }
+            const dateStr = seasonalDates[currentSeason] || "2023-04-15";
+            const badge = document.getElementById('basemap-date-badge');
+
+            if (currentBasemapType === "seasonal_gibs") {
+                baseTileLayer = L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/${dateStr}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`, {
+                    maxZoom: 9,
+                    maxNativeZoom: 9,
+                    attribution: 'NASA GIBS (Terra MODIS TrueColor)'
+                }).addTo(map);
+                baseTileLayer.bringToBack();
+                if (badge) badge.innerText = `📅 Дата оптической подложки: ${dateStr} (NASA GIBS Terra TrueColor, синхронизировано с сезоном)`;
+            } else if (currentBasemapType === "esri") {
+                baseTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 18,
+                    attribution: 'Tiles &copy; Esri World Imagery'
+                }).addTo(map);
+                baseTileLayer.bringToBack();
+                if (badge) badge.innerText = `🛰️ Оптическая подложка: Esri World Imagery (Сверхвысокое пространственное разрешение)`;
+            } else if (currentBasemapType === "osm") {
+                baseTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                baseTileLayer.bringToBack();
+                if (badge) badge.innerText = `🗺️ Картографическая подложка: OpenStreetMap`;
+            } else {
+                if (badge) badge.innerText = `⬛ Оптическая подложка отключена (Темный экран)`;
+            }
+        }
+
+        updateBasemapTileLayer();
+
+        function onBasemapChange(newType) {
+            currentBasemapType = newType;
+            updateBasemapTileLayer();
+        }
+
+        function onSarOpacityChange(val) {
+            currentSarOpacity = parseFloat(val) / 100.0;
+            const label = document.getElementById('sar-opacity-val');
+            if (label) label.innerText = `${val}%`;
+            if (overlayA) overlayA.setOpacity(currentSarOpacity);
+            if (overlayB) overlayB.setOpacity(currentSarOpacity);
+        }
 
         let overlayA = null;
         let overlayB = null;
@@ -733,7 +906,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         // =========================================================================
-        // PIPELINE BUILDER UI: GIS MODE
+        // PIPELINE BUILDER UI: GIS MODE & BENCHMARK MODE WITH KWARGS
         // =========================================================================
         function setBMode(mode) {
             bMode = mode;
@@ -754,21 +927,169 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         }
 
+        function renderStageSettingsDrawer(stage, idx, mode) {
+            if (!stage.openSettings) return '';
+            const kw = stage.kwargs || {};
+
+            if (kw._model) {
+                return `
+                    <div class="kwarg-drawer">
+                        <div style="color: #69f0ae; font-weight: bold; margin-bottom: 2px;">🧠 Параметры обученной сети (Read-only):</div>
+                        <div class="kwarg-row"><span class="kwarg-label">Архитектура:</span><span>${kw.arch}</span></div>
+                        <div class="kwarg-row"><span class="kwarg-label">Признаков:</span><span>${kw.features || kw.base_dim}</span></div>
+                        <div class="kwarg-row"><span class="kwarg-label">Файл весов:</span><code>${kw.weights}</code></div>
+                        <div style="color: #b0bec5; font-size: 0.66rem; margin-top: 2px;">${kw.info}</div>
+                    </div>
+                `;
+            }
+
+            let controlsHtml = '';
+            if ('w' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Размер окна w:</span>
+                        <select class="kwarg-input" onchange="updateStageKwarg(${idx}, 'w', parseInt(this.value), '${mode}')">
+                            ${[3, 5, 7, 9, 11].map(sz => `<option value="${sz}" ${kw.w === sz ? 'selected' : ''}>${sz}x${sz}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+            if ('looks' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Взгляды L:</span>
+                        <input type="number" step="0.1" min="1.0" max="64.0" class="kwarg-input" style="width: 58px;" value="${kw.looks}" onchange="updateStageKwarg(${idx}, 'looks', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('damping' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Затухание a:</span>
+                        <input type="number" step="0.5" min="0.5" max="10.0" class="kwarg-input" style="width: 52px;" value="${kw.damping}" onchange="updateStageKwarg(${idx}, 'damping', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('sigma_s' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Пространств. σ_s:</span>
+                        <input type="number" step="0.5" min="0.5" max="10.0" class="kwarg-input" style="width: 52px;" value="${kw.sigma_s}" onchange="updateStageKwarg(${idx}, 'sigma_s', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('sigma_r' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Радиометрич. σ_r:</span>
+                        <input type="number" step="0.01" min="0.01" max="1.0" class="kwarg-input" style="width: 58px;" value="${kw.sigma_r}" onchange="updateStageKwarg(${idx}, 'sigma_r', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('alpha' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Дробный порядок α:</span>
+                        <input type="number" step="0.05" min="0.1" max="2.0" class="kwarg-input" style="width: 58px;" value="${kw.alpha}" onchange="updateStageKwarg(${idx}, 'alpha', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('n_iter' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Число итераций:</span>
+                        <input type="number" step="1" min="1" max="50" class="kwarg-input" style="width: 52px;" value="${kw.n_iter}" onchange="updateStageKwarg(${idx}, 'n_iter', parseInt(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('max_iter' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Макс. итераций:</span>
+                        <input type="number" step="1" min="1" max="50" class="kwarg-input" style="width: 52px;" value="${kw.max_iter}" onchange="updateStageKwarg(${idx}, 'max_iter', parseInt(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+            if ('tol' in kw) {
+                controlsHtml += `
+                    <div class="kwarg-row">
+                        <span class="kwarg-label">Порог сходимости:</span>
+                        <input type="number" step="0.0001" min="0.00001" max="0.01" class="kwarg-input" style="width: 72px;" value="${kw.tol}" onchange="updateStageKwarg(${idx}, 'tol', parseFloat(this.value), '${mode}')">
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="kwarg-drawer">
+                    <div style="color: #69f0ae; font-weight: bold; margin-bottom: 2px;">⚙️ Настраиваемые параметры оператора:</div>
+                    ${controlsHtml}
+                </div>
+            `;
+        }
+
+        function updateStageKwarg(idx, key, val, mode) {
+            if (mode === 'gis') {
+                if (customStages[idx] && customStages[idx].kwargs) {
+                    customStages[idx].kwargs[key] = val;
+                }
+            } else {
+                if (benchCustomStages[idx] && benchCustomStages[idx].kwargs) {
+                    benchCustomStages[idx].kwargs[key] = val;
+                }
+            }
+        }
+
+        function toggleCustomStageSettings(idx) {
+            if (customStages[idx]) {
+                customStages[idx].openSettings = !customStages[idx].openSettings;
+                renderCustomStages();
+            }
+        }
+
+        function toggleBenchCustomStageSettings(idx) {
+            if (benchCustomStages[idx]) {
+                benchCustomStages[idx].openSettings = !benchCustomStages[idx].openSettings;
+                renderBenchCustomStages();
+            }
+        }
+
+        function updateCustomStageOp(idx, op) {
+            customStages[idx] = {
+                op,
+                kwargs: getDefaultKwargs(op),
+                openSettings: customStages[idx].openSettings
+            };
+            renderCustomStages();
+        }
+
+        function updateBenchCustomStageOp(idx, op) {
+            benchCustomStages[idx] = {
+                op,
+                kwargs: getDefaultKwargs(op),
+                openSettings: benchCustomStages[idx].openSettings
+            };
+            renderBenchCustomStages();
+        }
+
         function renderCustomStages() {
             const container = document.getElementById('custom-stages-list');
-            container.innerHTML = customStages.map((op, idx) => `
-                <div class="stage-row">
-                    <span class="stage-label">Шаг ${idx + 1}:</span>
-                    <select class="stage-select" onchange="updateCustomStage(${idx}, this.value)">
-                        ${FILTER_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === op ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                    </select>
-                    <button class="stage-del-btn" onclick="removeCustomStage(${idx})">✕</button>
+            container.innerHTML = customStages.map((stage, idx) => `
+                <div class="stage-box">
+                    <div class="stage-row">
+                        <span class="stage-label">Шаг ${idx + 1}:</span>
+                        <select class="stage-select" onchange="updateCustomStageOp(${idx}, this.value)">
+                            ${FILTER_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === stage.op ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+                        <button class="stage-settings-btn ${stage.openSettings ? 'active' : ''}" title="Настройки kwargs" onclick="toggleCustomStageSettings(${idx})">⚙️</button>
+                        <button class="stage-del-btn" onclick="removeCustomStage(${idx})">✕</button>
+                    </div>
+                    ${renderStageSettingsDrawer(stage, idx, 'gis')}
                 </div>
             `).join('');
         }
 
         function addCustomStage() {
-            customStages.push("BIL");
+            customStages.push(normalizeStage("BIL"));
             renderCustomStages();
         }
 
@@ -778,24 +1099,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             renderCustomStages();
         }
 
-        function updateCustomStage(idx, val) {
-            customStages[idx] = val;
-        }
-
         function clearCustomStages() {
-            customStages = ["FTV"];
+            customStages = [normalizeStage("FTV")];
             renderCustomStages();
         }
 
         function applyPreset(stages) {
-            customStages = [...stages];
+            customStages = stages.map(s => normalizeStage(s));
             renderCustomStages();
             runCustomPipeline();
         }
 
-        // =========================================================================
-        // PIPELINE BUILDER UI: BENCHMARK MODE
-        // =========================================================================
         function setBenchBMode(mode) {
             benchBMode = mode;
             if (mode === 'preset') {
@@ -817,19 +1131,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function renderBenchCustomStages() {
             const container = document.getElementById('bench-custom-stages-list');
-            container.innerHTML = benchCustomStages.map((op, idx) => `
-                <div class="stage-row">
-                    <span class="stage-label">Шаг ${idx + 1}:</span>
-                    <select class="stage-select" onchange="updateBenchCustomStage(${idx}, this.value)">
-                        ${FILTER_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === op ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                    </select>
-                    <button class="stage-del-btn" onclick="removeBenchCustomStage(${idx})">✕</button>
+            container.innerHTML = benchCustomStages.map((stage, idx) => `
+                <div class="stage-box">
+                    <div class="stage-row">
+                        <span class="stage-label">Шаг ${idx + 1}:</span>
+                        <select class="stage-select" onchange="updateBenchCustomStageOp(${idx}, this.value)">
+                            ${FILTER_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === stage.op ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                        </select>
+                        <button class="stage-settings-btn ${stage.openSettings ? 'active' : ''}" title="Настройки kwargs" onclick="toggleBenchCustomStageSettings(${idx})">⚙️</button>
+                        <button class="stage-del-btn" onclick="removeBenchCustomStage(${idx})">✕</button>
+                    </div>
+                    ${renderStageSettingsDrawer(stage, idx, 'bench')}
                 </div>
             `).join('');
         }
 
         function addBenchCustomStage() {
-            benchCustomStages.push("BIL");
+            benchCustomStages.push(normalizeStage("BIL"));
             renderBenchCustomStages();
         }
 
@@ -839,17 +1157,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             renderBenchCustomStages();
         }
 
-        function updateBenchCustomStage(idx, val) {
-            benchCustomStages[idx] = val;
-        }
-
         function clearBenchCustomStages() {
-            benchCustomStages = ["BIL"];
+            benchCustomStages = [normalizeStage("BIL")];
             renderBenchCustomStages();
         }
 
         function applyBenchPreset(stages) {
-            benchCustomStages = [...stages];
+            benchCustomStages = stages.map(s => normalizeStage(s));
             renderBenchCustomStages();
             runBenchCustomPipeline();
         }
@@ -863,21 +1177,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const statusBackend = document.getElementById('custom-status-backend');
             const btn = document.getElementById('run-custom-btn');
 
+            const stageNames = customStages.map(s => s.op).join(' → ');
             statusBox.style.display = 'block';
-            statusText.innerText = `⏳ Вычисление каскада: ${customStages.join(' → ')}...`;
-            statusBackend.innerText = "Подключение к вычислительному ядру...";
+            statusText.innerText = `⏳ Вычисление каскада: ${stageNames}...`;
+            statusBackend.innerText = "Подключение к аппаратному ядру NVIDIA RTX 3080...";
             btn.disabled = true;
 
             const reqBody = {
                 mode: "gis",
                 target_id: currentQuad,
                 season: currentSeason,
-                stages: customStages,
+                stages: customStages.map(s => ({ op: s.op, kwargs: s.kwargs })),
                 layer: currentLayer
             };
 
             try {
-                // 1. Попытка вызова GPU-сервера (NVIDIA RTX 3080)
                 const res = await fetch('http://localhost:8080/api/pipeline', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -896,10 +1210,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 isCustomBActive = true;
 
                 statusText.innerText = `✓ Вычислено за ${data.compute_time_ms} мс`;
-                statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${customStages.join(' → ')}`;
+                statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${stageNames}`;
                 updateLayers();
             } catch (err) {
-                // 2. Локальный Fallback на клиентский JavaScript Engine
                 console.warn("[SAR] Сервер localhost:8080 недоступен, переключение на локальный JS движок:", err);
                 statusText.innerText = `⏳ Выполнение в браузере (JS Engine)...`;
                 statusBackend.innerText = "Клиентский вычислительный движок";
@@ -910,7 +1223,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     customBMetrics = jsRes.metrics;
                     isCustomBActive = true;
                     statusText.innerText = `✓ Вычислено в браузере за ${jsRes.timeMs} мс`;
-                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${customStages.join(' → ')}`;
+                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${stageNames}`;
                     updateLayers();
                 } catch (clientErr) {
                     statusText.innerText = `❌ Ошибка: ${clientErr.message}`;
@@ -927,15 +1240,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const statusBackend = document.getElementById('bench-custom-status-backend');
             const btn = document.getElementById('bench-run-custom-btn');
 
+            const stageNames = benchCustomStages.map(s => s.op).join(' → ');
             statusBox.style.display = 'block';
-            statusText.innerText = `⏳ Вычисление каскада: ${benchCustomStages.join(' → ')}...`;
-            statusBackend.innerText = "Подключение к вычислительному ядру...";
+            statusText.innerText = `⏳ Вычисление каскада: ${stageNames}...`;
+            statusBackend.innerText = "Подключение к аппаратному ядру NVIDIA RTX 3080...";
             btn.disabled = true;
 
             const reqBody = {
                 mode: "bench",
                 target_id: currentBenchId,
-                stages: benchCustomStages
+                stages: benchCustomStages.map(s => ({ op: s.op, kwargs: s.kwargs }))
             };
 
             try {
@@ -957,7 +1271,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 isBenchCustomBActive = true;
 
                 statusText.innerText = `✓ Вычислено за ${data.compute_time_ms} мс`;
-                statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${benchCustomStages.join(' → ')}`;
+                statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${stageNames}`;
                 renderBenchImages();
             } catch (err) {
                 console.warn("[SAR] Сервер недоступен, запуск JS движка для бенчмарка:", err);
@@ -970,7 +1284,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     benchCustomBMetrics = jsRes.metrics;
                     isBenchCustomBActive = true;
                     statusText.innerText = `✓ Вычислено в браузере за ${jsRes.timeMs} мс`;
-                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${benchCustomStages.join(' → ')}`;
+                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${stageNames}`;
                     renderBenchImages();
                 } catch (clientErr) {
                     statusText.innerText = `❌ Ошибка: ${clientErr.message}`;
@@ -1061,6 +1375,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             for (let y = 0; y < H; y++) {
                 const y0 = Math.max(0, y - rad), y1 = Math.min(H - 1, y + rad);
                 for (let x = 0; x < W; x++) {
+                    const x0 = Math.max(0, x - rad), x1 = Math.min(W - 1, x + rad);
                     const centerVal = arr[y * W + x];
                     let weightSum = 0, valSum = 0;
                     for (let py = y0; py <= y1; py++) {
@@ -1274,17 +1589,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 "ftv_bilateral": ["FTV", "BIL"],
                 "bil_ftv_bil": ["BIL", "FTV", "BIL"],
                 "rpca": ["RPCA"],
-                "rpca_s": ["RPCA_S"],
-                "dip_moran": ["DIP_MORAN"],
-                "dip_sarp": ["DIP_SARP"],
-                "dip_pure": ["DIP_PURE"],
-                "dip_rff": ["DIP_RFF"]
+                "rpca_s": ["RPCA_S"]
             };
             return map[pKey] || ["RAW"];
         }
 
         async function onSeasonChange(newSeason) {
             currentSeason = newSeason;
+            updateBasemapTileLayer();
             if (currentMode === 'gis') {
                 await updateSeasonalLayers();
             }
@@ -1364,7 +1676,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const pipeB = q.pipelines[currentPipeB] || q.pipelines[Object.keys(q.pipelines)[0]];
             if (isCustomBActive && customBImageUrl) {
                 urlB = customBImageUrl;
-                labelB = (bMode === 'custom') ? ("Каскад: " + customStages.join(' → ')) : (pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name);
+                labelB = (bMode === 'custom') ? ("Каскад: " + customStages.map(s => s.op).join(' → ')) : (pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name);
             } else {
                 urlB = pipeB.layers[currentLayer] || pipeB.layers['rgb'];
                 labelB = pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name;
@@ -1373,8 +1685,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (overlayA) map.removeLayer(overlayA);
             if (overlayB) map.removeLayer(overlayB);
 
-            overlayB = L.imageOverlay(urlB, q.bounds, { opacity: currentOpacity }).addTo(map);
-            overlayA = L.imageOverlay(urlA, q.bounds, { opacity: currentOpacity }).addTo(map);
+            overlayB = L.imageOverlay(urlB, q.bounds, { opacity: currentSarOpacity }).addTo(map);
+            overlayA = L.imageOverlay(urlA, q.bounds, { opacity: currentSarOpacity }).addTo(map);
 
             const labelA = pipeA.name.includes('.') ? pipeA.name.split('.').slice(1).join('.').trim() : pipeA.name;
             const seasonLabels = { "spring": "Весна", "summer": "Лето", "autumn": "Осень", "winter": "Зима" };
