@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ],
+        throwOnError: false
+    });
+});
+</script>
+<style>
+.markdown-body {
+    box-sizing: border-box;
+    min-width: 200px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px;
+}
+</style>
+</head>
+<body class="markdown-body">
+<h1>Модуль sentinel1_sar_parser</h1>
+<p>Парсер и вычислительный конвейер выгрузки и радиометрической обработки радарных данных Sentinel-1 SAR (Synthetic Aperture Radar) Level-1 GRD через Google Earth Engine API с экспортом в формат NetCDF-4.</p>
+<hr />
+<h2>1. Контакты</h2>
+<ul>
+<li><strong>Ответственный за модуль:</strong> Кидысюк Александр</li>
+<li><strong>Email:</strong> <code>233370@edu.fa.ru</code>, <code>numl2202@gmail.com</code></li>
+<li><strong>Telegram:</strong> <code>@kvdep</code></li>
+</ul>
+<hr />
+<h2>2. Физические характеристики спутника и сенсора</h2>
+<ul>
+<li><strong>Космический аппарат:</strong> Sentinel-1 (созвездие спутников 1A, 1B, 1C), программа Copernicus Европейского космического агентства (ESA).</li>
+<li><strong>Тип орбиты:</strong> Солнечно-синхронная квазиполярная орбита, высота $693\text{ км}$, наклонение $98.18^\circ$.</li>
+<li><strong>Частота и длина волны:</strong> C-диапазон, центральная несущая частота $f_0 = 5.405\text{ ГГц}$, длина волны $\lambda = 5.54657\text{ см}$ ($0.0555\text{ м}$).</li>
+<li><strong>Режим съемки:</strong> Interferometric Wide Swath (IW), ширина полосы захвата (swath width) $250\text{ км}$.</li>
+<li><strong>Угол падения луча к эллипсоиду:</strong> $\theta \in [29.1^\circ, 46.0^\circ]$.</li>
+<li><strong>Уровень шума аппаратуры (NESZ):</strong> от $-22\text{ дБ}$ до $-25\text{ дБ}$.</li>
+<li><strong>Каналы поляризации:</strong></li>
+<li><code>VV</code> (Vertical transmit, Vertical receive) — ко-поляризационный канал (отражение без изменения плоскости поляризации).</li>
+<li><code>VH</code> (Vertical transmit, Horizontal receive) — кросс-поляризационный канал (сигнал, деполяризованный средой в ортогональную плоскость).</li>
+<li><code>ratio</code> — поляризационное отношение, вычисляемое как $\text{ratio} = \text{VV} - \text{VH}$ в децибелах ($10 \log_{10}(\sigma^0_{\text{VV}} / \sigma^0_{\text{VH}})$).</li>
+</ul>
+<hr />
+<h2>3. Разрешение данных</h2>
+<ul>
+<li><strong>Пространственное разрешение сенсора IW:</strong></li>
+<li>по наклонной дальности (slant range): $20\text{ м}$;</li>
+<li>по азимуту (azimuth): $22\text{ м}$.</li>
+<li><strong>Пространственное разрешение сетки продукта:</strong> $20 \times 20\text{ м}$ на пиксель (задается параметром <code>scale=20</code> в API <code>computePixels</code>).</li>
+<li><strong>Временное разрешение:</strong></li>
+<li>Период повторяемости орбитального витка: 12 суток для одного аппарата, 6 суток для созвездия из двух аппаратов.</li>
+<li>Временное окно медианного композита: 3 месяца назад от каждой даты съемки (Temporal Median).</li>
+</ul>
+<hr />
+<h2>4. Этапы конвейера обработки (Pipeline)</h2>
+<ol>
+<li>
+<p><strong>Парсинг входного GeoJSON:</strong></p>
+<ul>
+<li>Извлечение координат области интереса (Polygon или Point) и временного свойства <code>time</code>.</li>
+<li>Поддержка форматов: одиночная дата <code>YYYY-MM-DD</code> (автоматически расширяется до 24-часового интервала <code>[date, date + 1 day]</code>), массив границ <code>[start_date, end_date]</code>, массив с шагом дискретизации <code>[start, end, P1D]</code>.</li>
+</ul>
+</li>
+<li>
+<p><strong>Радиометрическая коррекция рельефа (RTC, Radiometric Terrain Correction):</strong></p>
+<ul>
+<li>Выполняется на стороне GEE по модели Уландера (Small, 2011) с использованием цифровой модели рельефа Copernicus DEM GLO-30 (<code>COPERNICUS/DEM/GLO30_2024_1</code>) с шагом 30 метров.</li>
+<li>Пересчет удельной эффективной площади рассеяния от площади эллипсоида к истинной площади освещенной поверхности: $\gamma^0 = \sigma^0 \frac{A_\sigma}{A_\gamma} = \sigma^0 \frac{\sin \theta}{\cos \psi}$, где $\theta$ — угол падения луча к эллипсоиду, $\psi$ — угол между вектором нормали к склону $\hat{\mathbf{n}}$ и плоскостью волнового фронта радара.</li>
+</ul>
+</li>
+<li>
+<p><strong>Временная медианная фильтрация (Temporal Median):</strong></p>
+<ul>
+<li>Для каждого снимка формируется выборка всех пролетов за предшествующие 3 месяца.</li>
+<li>Попиксельное вычисление медианы устраняет случайные атмосферные искажения и сглаживает спекл во времени.</li>
+</ul>
+</li>
+<li>
+<p><strong>Выгрузка растровых массивов:</strong></p>
+<ul>
+<li>Экспорт через прямой шлюз <code>ee.data.computePixels</code> в формате <code>NUMPY_NDARRAY</code> с пространственным шагом 20 метров.</li>
+</ul>
+</li>
+<li>
+<p><strong>Пространственная адаптивная фильтрация Gamma MAP:</strong></p>
+<ul>
+<li>Байесовский фильтр Maximum A Posteriori в локальном окне $3 \times 3$ пикселя ($w=3$) с эквивалентным числом некогерентных отсчетов $L=5.0$.</li>
+<li>Однородные области с коэффициентом вариации $C_I \le C_u = 1/\sqrt{5} \approx 0.4472$ сглаживаются до локального среднего $\bar{I}$.</li>
+<li>Точечные цели и резкие границы с $C_I \ge C_{\max} = \sqrt{2/5} \approx 0.6325$ сохраняются без сглаживания ($\hat{I} = I$).</li>
+<li>Промежуточные текстурированные зоны ($C_u < C_I < C_{\max}$) рассчитываются через аналитическое решение квадратного уравнения с априорным гамма-распределением сигнала.</li>
+</ul>
+</li>
+<li>
+<p><strong>Логарифмическое масштабирование в децибелы (дБ):</strong></p>
+<ul>
+<li>Пересчет каналов мощности: $\text{VV}_{\text{dB}} = 10 \log_{10}(\sigma^0_{\text{VV}})$, $\text{VH}_{\text{dB}} = 10 \log_{10}(\sigma^0_{\text{VH}})$.</li>
+<li>Поляризационное отношение: $\text{ratio}_{\text{dB}} = \text{VV}_{\text{dB}} - \text{VH}_{\text{dB}}$.</li>
+</ul>
+</li>
+<li>
+<p><strong>Формирование NetCDF-4:</strong></p>
+<ul>
+<li>Сборка многомерного массива xarray с типами <code>float32</code> для радарных переменных и <code>float64</code> для географических координат.</li>
+</ul>
+</li>
+</ol>
+<hr />
+<h2>5. Скорость работы пайплайна (Бенчмарки)</h2>
+<p>Замеры выполнены на тестовом полигоне площадью $\approx 20\text{ км}^2$ ($0.05^\circ \times 0.05^\circ$, сетка $557 \times 558$ пикселей $\approx 310\,800$ ячеек растра):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Этап обработки</th>
+<th style="text-align: left;">Затраченное время</th>
+<th style="text-align: left;">Доля времени</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">Инициализация GEE и фильтрация каталога гранул</td>
+<td style="text-align: left;">$1.2\text{--}2.0\text{ с}$</td>
+<td style="text-align: left;">$18\%$</td>
+</tr>
+<tr>
+<td style="text-align: left;">Серверный расчет RTC + медиана 3 мес. + <code>computePixels</code></td>
+<td style="text-align: left;">$4.5\text{--}6.5\text{ с}$</td>
+<td style="text-align: left;">$75\%$</td>
+</tr>
+<tr>
+<td style="text-align: left;">Пространственный фильтр Gamma MAP ($3 \times 3$ NumPy)</td>
+<td style="text-align: left;">$0.035\text{ с}$ ($35\text{ мс}$)</td>
+<td style="text-align: left;">$< 1\%$</td>
+</tr>
+<tr>
+<td style="text-align: left;">Конвертация в децибелы и расчет ratio</td>
+<td style="text-align: left;">$0.010\text{ с}$ ($10\text{ мс}$)</td>
+<td style="text-align: left;">$< 1\%$</td>
+</tr>
+<tr>
+<td style="text-align: left;">Сериализация и запись NetCDF-4 на диск</td>
+<td style="text-align: left;">$0.15\text{--}0.25\text{ с}$</td>
+<td style="text-align: left;">$6\%$</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Полный цикл выполнения (1 дата)</strong></td>
+<td style="text-align: left;"><strong>$6.0\text{--}8.5\text{ с}$</strong></td>
+<td style="text-align: left;"><strong>$100\%$</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Средняя пропускная способность конвейера:</strong> $\approx 35\,000\text{--}50\,000$ ячеек растра в секунду.</li>
+</ul>
+<hr />
+<h2>6. Переменные окружения</h2>
+<p>Модуль считывает конфигурационные параметры через функцию <code>resolve_variable</code>. Идентификаторы проектов и ключи строго изолированы от вывода в логи и консоль.</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Переменная</th>
+<th style="text-align: left;">Описание</th>
+<th style="text-align: left;">Обязательность</th>
+<th style="text-align: left;">Значение по умолчанию</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>GEE_PROJ</code></td>
+<td style="text-align: left;">Идентификатор проекта Google Cloud с активированным Earth Engine API</td>
+<td style="text-align: left;">Обязательно</td>
+<td style="text-align: left;"><code>""</code> (или значение из <code>GEE_PROJECT_ID</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GEE_SERVICE_ACCOUNT</code></td>
+<td style="text-align: left;">Email сервисного аккаунта Google Cloud</td>
+<td style="text-align: left;">Опционально</td>
+<td style="text-align: left;"><code>""</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>GEE_KEY_PATH</code></td>
+<td style="text-align: left;">Абсолютный путь к JSON-файлу приватного ключа сервисного аккаунта</td>
+<td style="text-align: left;">Опционально</td>
+<td style="text-align: left;"><code>"/opt/airflow/secrets/gee_key.json"</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>7. Спецификация входных и выходных данных</h2>
+<h3>Входной формат (GeoJSON, RFC 7946)</h3>
+<p>Файл <code>input_geo.json</code> с полигоном и временным диапазоном:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;FeatureCollection&quot;,
+  &quot;features&quot;: [
+    {
+      &quot;type&quot;: &quot;Feature&quot;,
+      &quot;properties&quot;: {
+        &quot;time&quot;: [&quot;2024-05-01&quot;, &quot;2024-05-20&quot;],
+        &quot;is_rectangle&quot;: true
+      },
+      &quot;geometry&quot;: {
+        &quot;type&quot;: &quot;Polygon&quot;,
+        &quot;coordinates&quot;: [
+          [
+            [40.10, 55.45],
+            [40.20, 55.45],
+            [40.20, 55.55],
+            [40.10, 55.55],
+            [40.10, 55.45]
+          ]
+        ]
+      }
+    }
+  ]
+}
+</code></pre>
+<h3>Выходной формат (NetCDF-4 / Classic)</h3>
+<p>Итоговый файл <code>output_data.nc</code>:</p>
+<ul>
+<li><strong>Оси и координаты:</strong></li>
+<li><code>time</code>: <code>datetime64[ns]</code> — метки дат пролетов спутника.</li>
+<li><code>latitude</code>: <code>float64</code> — массив широт, строго монотонно убывающий (с севера на юг).</li>
+<li><code>longitude</code>: <code>float64</code> — массив долгот, строго монотонно возрастающий (с запада на восток).</li>
+<li><strong>Переменные:</strong></li>
+<li><code>VV</code>: <code>float32 (time, latitude, longitude)</code> — ко-поляризационный коэффициент рассеяния в дБ.</li>
+<li><code>VH</code>: <code>float32 (time, latitude, longitude)</code> — кросс-поляризационный коэффициент рассеяния в дБ.</li>
+<li><code>ratio</code>: <code>float32 (time, latitude, longitude)</code> — поляризационная разность $\text{VV} - \text{VH}$ в дБ.</li>
+<li><strong>Глобальные атрибуты:</strong></li>
+<li><code>units</code>: <code>"dB"</code></li>
+<li><code>resolution_meters</code>: <code>20</code></li>
+<li><code>description</code>: <code>"Sentinel-1 RTC Gamma-MAP processed SAR data"</code></li>
+</ul>
+<hr />
+<h2>8. Пример выходных данных</h2>
+<p>Реальный вывод структуры массива xarray для тестового полигона (лес, Мещёра, 5 дат):</p>
+<pre><code class="language-text">&lt;xarray.Dataset&gt; Size: 19MB
+Dimensions:    (time: 5, latitude: 557, longitude: 558)
+Coordinates:
+  * time       (time) datetime64[ns] 2024-05-04T03:37:50 ... 2024-05-28T03:37:51
+  * latitude   (latitude) float64 55.55 55.55 55.55 ... 55.45 55.45 55.45
+  * longitude  (longitude) float64 40.10 40.10 40.10 ... 40.20 40.20 40.20
+Data variables:
+    VV         (time, latitude, longitude) float32 -9.683 -9.665 ... -9.795
+    VH         (time, latitude, longitude) float32 -15.18 -15.29 ... -16.09
+    ratio      (time, latitude, longitude) float32 5.498 5.626 ... 6.298
+Attributes:
+    units:              dB
+    resolution_meters:  20
+    description:        Sentinel-1 RTC Gamma-MAP processed SAR data
+</code></pre>
+<p>Статистические характеристики реальной выгрузки:</p>
+<ul>
+<li><strong>Канал VV:</strong> минимум: $-18.60\text{ дБ}$, максимум: $+11.83\text{ дБ}$, среднее: $-10.27\text{ дБ}$.</li>
+<li><strong>Канал VH:</strong> минимум: $-27.97\text{ дБ}$, максимум: $+6.95\text{ дБ}$, среднее: $-15.93\text{ дБ}$.</li>
+<li><strong>Канал ratio:</strong> минимум: $+2.24\text{ дБ}$, максимум: $+27.42\text{ дБ}$, среднее: $+5.66\text{ дБ}$.</li>
+</ul>
+</body>
+</html>

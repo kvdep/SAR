@@ -1,0 +1,58 @@
+# System and Cache directories
+.pdf/
+.py/
+.ruff_cache/
+.pytest_cache/
+.ipynb/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating System files
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Credentials, Keys and Environment variables
+.env
+.env.*
+*.key
+*.pem
+*credentials*
+*token*
+*secret*
+
+# Deep Learning weights and checkpoints
+weights/
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.onnx
+
+# Heavyweight scientific datasets and raster archives
+*.nc
+*.tif
+*.tiff
+data_cache/
+benchmark_results/
+*.rar
+*.zip
+*.tar
+*.gz
+*.7z
+
+# Downloaded articles, papers and raw PDF documents
+paper_results/
+*.pdf
+
+# Giant pre-rendered HTML standalone bundles (>100MB, exceeds GitHub limit)
+index.html
+sar_advanced_comparison.html
+sar_visualization.html
+extracted_script.js
+
+# Temporary scratch logs and dumps
+*.log
+scratch_*.txt

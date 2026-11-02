@@ -1,0 +1,252 @@
+[
+  {
+    "pipeline": "BIL",
+    "steps": 1,
+    "bench_score": 40.83,
+    "enl": 7.69,
+    "epi": 0.3124,
+    "bias_db": -0.085,
+    "var_r": 0.048,
+    "score": 3.47
+  },
+  {
+    "pipeline": "RES",
+    "steps": 1,
+    "bench_score": 40.13,
+    "enl": 8.22,
+    "epi": 0.9892,
+    "bias_db": 0.132,
+    "var_r": 0.3924,
+    "score": 10.05
+  },
+  {
+    "pipeline": "FTV",
+    "steps": 1,
+    "bench_score": 39.97,
+    "enl": 13.56,
+    "epi": 0.9473,
+    "bias_db": -0.093,
+    "var_r": 0.082,
+    "score": 10.36
+  },
+  {
+    "pipeline": "MED",
+    "steps": 1,
+    "bench_score": 38.39,
+    "enl": 16.83,
+    "epi": -0.0163,
+    "bias_db": -0.293,
+    "var_r": 0.1866,
+    "score": 0.05
+  },
+  {
+    "pipeline": "FRO",
+    "steps": 1,
+    "bench_score": 38.24,
+    "enl": 14.75,
+    "epi": 0.9483,
+    "bias_db": -0.004,
+    "var_r": 0.0822,
+    "score": 10.94
+  },
+  {
+    "pipeline": "BIL -> BIL",
+    "steps": 2,
+    "bench_score": 39.72,
+    "enl": 10.36,
+    "epi": 0.2457,
+    "bias_db": -0.122,
+    "var_r": 0.0829,
+    "score": 2.89
+  },
+  {
+    "pipeline": "FTV -> BIL",
+    "steps": 2,
+    "bench_score": 39.5,
+    "enl": 17.46,
+    "epi": 0.1271,
+    "bias_db": -0.136,
+    "var_r": 0.1335,
+    "score": 2.34
+  },
+  {
+    "pipeline": "BIL -> FTV",
+    "steps": 2,
+    "bench_score": 39.43,
+    "enl": 17.48,
+    "epi": 0.1479,
+    "bias_db": -0.141,
+    "var_r": 0.1296,
+    "score": 2.52
+  },
+  {
+    "pipeline": "RES -> BIL",
+    "steps": 2,
+    "bench_score": 39.08,
+    "enl": 13.86,
+    "epi": 0.2749,
+    "bias_db": 0.065,
+    "var_r": 0.229,
+    "score": 3.81
+  },
+  {
+    "pipeline": "BIL -> RES",
+    "steps": 2,
+    "bench_score": 39.07,
+    "enl": 12.21,
+    "epi": 0.2719,
+    "bias_db": 0.034,
+    "var_r": 0.0928,
+    "score": 3.77
+  },
+  {
+    "pipeline": "FTV -> RES",
+    "steps": 2,
+    "bench_score": 38.34,
+    "enl": 17.28,
+    "epi": 0.9426,
+    "bias_db": 0.015,
+    "var_r": 0.4407,
+    "score": 11.08
+  },
+  {
+    "pipeline": "FRO -> BIL",
+    "steps": 2,
+    "bench_score": 38.33,
+    "enl": 18.65,
+    "epi": 0.105,
+    "bias_db": -0.041,
+    "var_r": 0.1341,
+    "score": 2.71
+  },
+  {
+    "pipeline": "FTV -> FTV",
+    "steps": 2,
+    "bench_score": 38.3,
+    "enl": 19.0,
+    "epi": 0.9291,
+    "bias_db": -0.123,
+    "var_r": 0.1238,
+    "score": 10.58
+  },
+  {
+    "pipeline": "BIL -> FRO",
+    "steps": 2,
+    "bench_score": 38.24,
+    "enl": 18.09,
+    "epi": 0.1573,
+    "bias_db": -0.086,
+    "var_r": 0.1325,
+    "score": 2.95
+  },
+  {
+    "pipeline": "ENH_LEE -> BIL",
+    "steps": 2,
+    "bench_score": 38.18,
+    "enl": 17.45,
+    "epi": 0.0933,
+    "bias_db": -0.057,
+    "var_r": 0.1371,
+    "score": 2.39
+  },
+  {
+    "pipeline": "BIL -> BIL -> BIL",
+    "steps": 3,
+    "bench_score": 38.94,
+    "enl": 12.85,
+    "epi": 0.1913,
+    "bias_db": -0.144,
+    "var_r": 0.108,
+    "score": 2.48
+  },
+  {
+    "pipeline": "BIL -> FTV -> BIL",
+    "steps": 3,
+    "bench_score": 38.76,
+    "enl": 20.86,
+    "epi": 0.0923,
+    "bias_db": -0.151,
+    "var_r": 0.1527,
+    "score": 2.25
+  },
+  {
+    "pipeline": "BIL -> BIL -> FTV",
+    "steps": 3,
+    "bench_score": 38.74,
+    "enl": 19.43,
+    "epi": 0.1191,
+    "bias_db": -0.16,
+    "var_r": 0.1447,
+    "score": 2.33
+  },
+  {
+    "pipeline": "FTV -> BIL -> BIL",
+    "steps": 3,
+    "bench_score": 38.64,
+    "enl": 19.99,
+    "epi": 0.0891,
+    "bias_db": -0.141,
+    "var_r": 0.1492,
+    "score": 2.19
+  },
+  {
+    "pipeline": "BIL -> RES -> BIL",
+    "steps": 3,
+    "bench_score": 38.31,
+    "enl": 17.02,
+    "epi": 0.2156,
+    "bias_db": 0.009,
+    "var_r": 0.1162,
+    "score": 3.81
+  },
+  {
+    "pipeline": "BIL -> BIL -> RES",
+    "steps": 3,
+    "bench_score": 38.13,
+    "enl": 15.09,
+    "epi": 0.2058,
+    "bias_db": -0.007,
+    "var_r": 0.1185,
+    "score": 3.53
+  },
+  {
+    "pipeline": "BIL -> FRO -> BIL",
+    "steps": 3,
+    "bench_score": 38.12,
+    "enl": 21.49,
+    "epi": 0.0818,
+    "bias_db": -0.094,
+    "var_r": 0.1518,
+    "score": 2.49
+  },
+  {
+    "pipeline": "ENH_LEE -> BIL -> BIL",
+    "steps": 3,
+    "bench_score": 38.08,
+    "enl": 20.05,
+    "epi": 0.0873,
+    "bias_db": -0.063,
+    "var_r": 0.1467,
+    "score": 2.56
+  },
+  {
+    "pipeline": "FTV -> FTV -> BIL",
+    "steps": 3,
+    "bench_score": 38.07,
+    "enl": 22.59,
+    "epi": 0.0488,
+    "bias_db": -0.155,
+    "var_r": 0.1659,
+    "score": 1.97
+  },
+  {
+    "pipeline": "FTV -> BIL -> RES",
+    "steps": 3,
+    "bench_score": 38.05,
+    "enl": 20.88,
+    "epi": 0.0907,
+    "bias_db": -0.032,
+    "var_r": 0.1519,
+    "score": 2.84
+  }
+]

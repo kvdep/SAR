@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    renderMathInElement(document.body, {
+        delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+        ],
+        throwOnError: false
+    });
+});
+</script>
+<style>
+.markdown-body {
+    box-sizing: border-box;
+    min-width: 200px;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 30px;
+}
+</style>
+</head>
+<body class="markdown-body">
+<h3>4. Этапы конвейера обработки (Pipeline)</h3>
+<ol>
+<li>
+<p><strong>Парсинг входного GeoJSON:</strong></p>
+<ul>
+<li>Извлечение координат области интереса (Polygon или Point) и временного свойства <code>time</code>.</li>
+<li>Поддержка форматов: одиночная дата <code>YYYY-MM-DD</code> (автоматически расширяется до 24-часового интервала <code>[date, date + 1 day]</code>), массив границ <code>[start_date, end_date]</code>, массив с шагом дискретизации <code>[start, end, P1D]</code>.</li>
+</ul>
+</li>
+<li>
+<p><strong>Радиометрическая коррекция рельефа (RTC, Radiometric Terrain Correction):</strong></p>
+<ul>
+<li>Выполняется на стороне GEE по модели Уландера (Small, 2011) с использованием цифровой модели рельефа Copernicus DEM GLO-30 (<code>COPERNICUS/DEM/GLO30_2024_1</code>) с шагом 30 метров.</li>
+<li>Пересчет удельной эффективной площади рассеяния от площади эллипсоида к истинной площади освещенной поверхности: $\gamma^0 = \sigma^0 \frac{A_\sigma}{A_\gamma} = \sigma^0 \frac{\sin \theta}{\cos \psi}$, где $\theta$ — угол падения луча к эллипсоиду, $\psi$ — угол между вектором нормали к склону $\hat{\mathbf{n}}$ и плоскостью волнового фронта радара.</li>
+</ul>
+</li>
+<li>
+<p><strong>Временная медианная фильтрация (Temporal Median):</strong></p>
+<ul>
+<li>Для каждого снимка формируется выборка всех пролетов за предшествующие 3 месяца.</li>
+<li>Попиксельное вычисление медианы устраняет случайные атмосферные искажения и сглаживает спекл во времени.</li>
+</ul>
+</li>
+<li>
+<p><strong>Выгрузка растровых массивов:</strong></p>
+<ul>
+<li>Экспорт через прямой шлюз <code>ee.data.computePixels</code> в формате <code>NUMPY_NDARRAY</code> с пространственным шагом 20 метров.</li>
+</ul>
+</li>
+<li>
+<p><strong>Пространственная адаптивная фильтрация Gamma MAP:</strong></p>
+<ul>
+<li>Байесовский фильтр Maximum A Posteriori в локальном окне $3 \times 3$ пикселя ($w=3$) с эквивалентным числом некогерентных отсчетов $L=5.0$.</li>
+<li>Однородные области с коэффициентом вариации $C_I \le C_u = 1/\sqrt{5} \approx 0.4472$ сглаживаются до локального среднего $\bar{I}$.</li>
+<li>Точечные цели и резкие границы с $C_I \ge C_{\max} = \sqrt{2/5} \approx 0.6325$ сохраняются без сглаживания ($\hat{I} = I$).</li>
+<li>Промежуточные текстурированные зоны ($C_u < C_I < C_{\max}$) рассчитываются через аналитическое решение квадратного уравнения с априорным гамма-распределением сигнала.</li>
+</ul>
+</li>
+<li>
+<p><strong>Логарифмическое масштабирование в децибелы (дБ):</strong></p>
+<ul>
+<li>Пересчет каналов мощности: $\text{VV}_{\text{dB}} = 10 \log_{10}(\sigma^0_{\text{VV}})$, $\text{VH}_{\text{dB}} = 10 \log_{10}(\sigma^0_{\text{VH}})$.</li>
+<li>Поляризационное отношение: $\text{ratio}_{\text{dB}} = \text{VV}_{\text{dB}} - \text{VH}_{\text{dB}}$.</li>
+</ul>
+</li>
+<li>
+<p><strong>Формирование NetCDF-4:</strong></p>
+<ul>
+<li>Сборка многомерного массива xarray с типами <code>float32</code> для радарных переменных и <code>float64</code> для географических координат.</li>
+</ul>
+</li>
+</ol>
+</body>
+</html>

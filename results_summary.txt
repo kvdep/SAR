@@ -1,0 +1,141 @@
+Raw input metrics: {'enl': 3.73, 'epi': 1.0, 'bias_db': 0.0, 'var_r': 0.0, 'psnr': 14.63, 'ssim': 0.869, 'score': 42.01}
+
+=== ALL 12 1-STEP PIPELINES (by Composite Score) ===
+ 1. BIL        | Score: 40.83 | PSNR: 14.34 дБ | SSIM: 0.8596 | ENL:  3.49 | EPI: 0.9301 | Bias: -0.002 дБ
+ 2. RES        | Score: 40.13 | PSNR: 14.23 дБ | SSIM: 0.8543 | ENL:  3.66 | EPI: 0.9160 | Bias:  0.070 дБ
+ 3. FTV        | Score: 39.97 | PSNR: 14.15 дБ | SSIM: 0.8519 | ENL:  3.59 | EPI: 0.8966 | Bias: -0.036 дБ
+ 4. MED        | Score: 38.39 | PSNR: 13.92 дБ | SSIM: 0.8447 | ENL:  3.45 | EPI: 0.7635 | Bias: -0.012 дБ
+ 5. FRO        | Score: 38.24 | PSNR: 13.93 дБ | SSIM: 0.8390 | ENL:  3.70 | EPI: 0.7769 | Bias: -0.046 дБ
+ 6. LEE        | Score: 37.70 | PSNR: 13.85 дБ | SSIM: 0.8365 | ENL:  3.55 | EPI: 0.7464 | Bias: -0.070 дБ
+ 7. KUA        | Score: 37.58 | PSNR: 13.81 дБ | SSIM: 0.8341 | ENL:  3.59 | EPI: 0.7368 | Bias: -0.057 дБ
+ 8. ENH_LEE    | Score: 37.40 | PSNR: 13.98 дБ | SSIM: 0.8411 | ENL:  3.73 | EPI: 0.6678 | Bias: -0.016 дБ
+ 9. ENH_FRO    | Score: 37.21 | PSNR: 13.84 дБ | SSIM: 0.8361 | ENL:  3.59 | EPI: 0.6966 | Bias: -0.064 дБ
+10. GMAP       | Score: 37.02 | PSNR: 13.86 дБ | SSIM: 0.8384 | ENL:  3.51 | EPI: 0.6975 | Bias: -0.115 дБ
+11. MER        | Score: 32.04 | PSNR: 13.79 дБ | SSIM: 0.8191 | ENL:  3.85 | EPI: 0.3321 | Bias: -0.291 дБ
+12. BXC        | Score: 31.60 | PSNR: 13.53 дБ | SSIM: 0.8197 | ENL:  3.77 | EPI: 0.1679 | Bias: -0.000 дБ
+
+=== TOP-15 2-STEP PIPELINES (by Composite Score) ===
+ 1. BIL -> BIL           | Score: 39.72 | PSNR: 14.20 дБ | SSIM: 0.8545 | ENL:  3.34 | EPI: 0.8448 | Bias: -0.003 дБ
+ 2. FTV -> BIL           | Score: 39.50 | PSNR: 14.07 дБ | SSIM: 0.8485 | ENL:  3.42 | EPI: 0.8641 | Bias: -0.036 дБ
+ 3. BIL -> FTV           | Score: 39.43 | PSNR: 14.06 дБ | SSIM: 0.8485 | ENL:  3.38 | EPI: 0.8571 | Bias: -0.034 дБ
+ 4. RES -> BIL           | Score: 39.08 | PSNR: 14.03 дБ | SSIM: 0.8464 | ENL:  3.49 | EPI: 0.8441 | Bias:  0.064 дБ
+ 5. BIL -> RES           | Score: 39.07 | PSNR: 13.99 дБ | SSIM: 0.8457 | ENL:  3.51 | EPI: 0.8501 | Bias:  0.068 дБ
+ 6. FTV -> RES           | Score: 38.34 | PSNR: 13.85 дБ | SSIM: 0.8393 | ENL:  3.55 | EPI: 0.7878 | Bias:  0.035 дБ
+ 7. FRO -> BIL           | Score: 38.33 | PSNR: 13.87 дБ | SSIM: 0.8358 | ENL:  3.60 | EPI: 0.7976 | Bias: -0.046 дБ
+ 8. FTV -> FTV           | Score: 38.30 | PSNR: 13.86 дБ | SSIM: 0.8406 | ENL:  3.47 | EPI: 0.7990 | Bias: -0.072 дБ
+ 9. BIL -> FRO           | Score: 38.24 | PSNR: 13.87 дБ | SSIM: 0.8364 | ENL:  3.58 | EPI: 0.7860 | Bias: -0.044 дБ
+10. ENH_LEE -> BIL       | Score: 38.18 | PSNR: 13.94 дБ | SSIM: 0.8384 | ENL:  3.59 | EPI: 0.7574 | Bias: -0.019 дБ
+11. BIL -> MED           | Score: 38.16 | PSNR: 13.90 дБ | SSIM: 0.8435 | ENL:  3.31 | EPI: 0.7458 | Bias: -0.013 дБ
+12. MED -> BIL           | Score: 38.04 | PSNR: 13.86 дБ | SSIM: 0.8420 | ENL:  3.32 | EPI: 0.7406 | Bias: -0.013 дБ
+13. MED -> MED           | Score: 38.00 | PSNR: 13.81 дБ | SSIM: 0.8399 | ENL:  3.34 | EPI: 0.7482 | Bias: -0.017 дБ
+14. RES -> FTV           | Score: 37.90 | PSNR: 13.80 дБ | SSIM: 0.8372 | ENL:  3.56 | EPI: 0.7549 | Bias:  0.039 дБ
+15. FTV -> MED           | Score: 37.79 | PSNR: 13.83 дБ | SSIM: 0.8395 | ENL:  3.39 | EPI: 0.7448 | Bias: -0.054 дБ
+
+=== TOP-15 2-STEP PIPELINES (by PSNR) ===
+ 1. BIL -> BIL           | PSNR: 14.20 дБ | SSIM: 0.8545 | ENL:  3.34 | EPI: 0.8448 | Bias: -0.003 дБ | Score: 39.72
+ 2. FTV -> BIL           | PSNR: 14.07 дБ | SSIM: 0.8485 | ENL:  3.42 | EPI: 0.8641 | Bias: -0.036 дБ | Score: 39.50
+ 3. BIL -> FTV           | PSNR: 14.06 дБ | SSIM: 0.8485 | ENL:  3.38 | EPI: 0.8571 | Bias: -0.034 дБ | Score: 39.43
+ 4. RES -> BIL           | PSNR: 14.03 дБ | SSIM: 0.8464 | ENL:  3.49 | EPI: 0.8441 | Bias:  0.064 дБ | Score: 39.08
+ 5. BIL -> RES           | PSNR: 13.99 дБ | SSIM: 0.8457 | ENL:  3.51 | EPI: 0.8501 | Bias:  0.068 дБ | Score: 39.07
+ 6. ENH_LEE -> BIL       | PSNR: 13.94 дБ | SSIM: 0.8384 | ENL:  3.59 | EPI: 0.7574 | Bias: -0.019 дБ | Score: 38.18
+ 7. BIL -> MED           | PSNR: 13.90 дБ | SSIM: 0.8435 | ENL:  3.31 | EPI: 0.7458 | Bias: -0.013 дБ | Score: 38.16
+ 8. BIL -> ENH_LEE       | PSNR: 13.90 дБ | SSIM: 0.8378 | ENL:  3.59 | EPI: 0.6551 | Bias: -0.013 дБ | Score: 37.14
+ 9. FRO -> BIL           | PSNR: 13.87 дБ | SSIM: 0.8358 | ENL:  3.60 | EPI: 0.7976 | Bias: -0.046 дБ | Score: 38.33
+10. BIL -> FRO           | PSNR: 13.87 дБ | SSIM: 0.8364 | ENL:  3.58 | EPI: 0.7860 | Bias: -0.044 дБ | Score: 38.24
+11. FTV -> FTV           | PSNR: 13.86 дБ | SSIM: 0.8406 | ENL:  3.47 | EPI: 0.7990 | Bias: -0.072 дБ | Score: 38.30
+12. MED -> BIL           | PSNR: 13.86 дБ | SSIM: 0.8420 | ENL:  3.32 | EPI: 0.7406 | Bias: -0.013 дБ | Score: 38.04
+13. FTV -> RES           | PSNR: 13.85 дБ | SSIM: 0.8393 | ENL:  3.55 | EPI: 0.7878 | Bias:  0.035 дБ | Score: 38.34
+14. FTV -> MED           | PSNR: 13.83 дБ | SSIM: 0.8395 | ENL:  3.39 | EPI: 0.7448 | Bias: -0.054 дБ | Score: 37.79
+15. MED -> MED           | PSNR: 13.81 дБ | SSIM: 0.8399 | ENL:  3.34 | EPI: 0.7482 | Bias: -0.017 дБ | Score: 38.00
+
+=== TOP-15 3-STEP PIPELINES (by Composite Score) ===
+ 1. BIL -> BIL -> BIL            | Score: 38.94 | PSNR: 14.09 дБ | SSIM: 0.8504 | ENL:  3.24 | EPI: 0.7853 | Bias: -0.003 дБ
+ 2. BIL -> FTV -> BIL            | Score: 38.76 | PSNR: 13.99 дБ | SSIM: 0.8456 | ENL:  3.30 | EPI: 0.8017 | Bias: -0.033 дБ
+ 3. BIL -> BIL -> FTV            | Score: 38.74 | PSNR: 13.99 дБ | SSIM: 0.8457 | ENL:  3.26 | EPI: 0.7998 | Bias: -0.033 дБ
+ 4. FTV -> BIL -> BIL            | Score: 38.64 | PSNR: 13.99 дБ | SSIM: 0.8451 | ENL:  3.33 | EPI: 0.7928 | Bias: -0.035 дБ
+ 5. BIL -> RES -> BIL            | Score: 38.31 | PSNR: 13.94 дБ | SSIM: 0.8427 | ENL:  3.40 | EPI: 0.7825 | Bias:  0.061 дБ
+ 6. BIL -> BIL -> RES            | Score: 38.13 | PSNR: 13.88 дБ | SSIM: 0.8412 | ENL:  3.42 | EPI: 0.7763 | Bias:  0.068 дБ
+ 7. BIL -> FRO -> BIL            | Score: 38.12 | PSNR: 13.83 дБ | SSIM: 0.8338 | ENL:  3.50 | EPI: 0.7827 | Bias: -0.044 дБ
+ 8. ENH_LEE -> BIL -> BIL        | Score: 38.08 | PSNR: 13.89 дБ | SSIM: 0.8355 | ENL:  3.52 | EPI: 0.7587 | Bias: -0.021 дБ
+ 9. FTV -> FTV -> BIL            | Score: 38.07 | PSNR: 13.82 дБ | SSIM: 0.8379 | ENL:  3.36 | EPI: 0.7855 | Bias: -0.073 дБ
+10. FTV -> BIL -> RES            | Score: 38.05 | PSNR: 13.77 дБ | SSIM: 0.8357 | ENL:  3.47 | EPI: 0.7741 | Bias:  0.034 дБ
+11. FTV -> BIL -> FTV            | Score: 38.02 | PSNR: 13.81 дБ | SSIM: 0.8380 | ENL:  3.34 | EPI: 0.7791 | Bias: -0.068 дБ
+12. BIL -> FTV -> FTV            | Score: 38.00 | PSNR: 13.80 дБ | SSIM: 0.8379 | ENL:  3.31 | EPI: 0.7778 | Bias: -0.068 дБ
+13. BIL -> FTV -> RES            | Score: 38.00 | PSNR: 13.78 дБ | SSIM: 0.8364 | ENL:  3.44 | EPI: 0.7680 | Bias:  0.037 дБ
+14. BIL -> BIL -> FRO            | Score: 37.96 | PSNR: 13.84 дБ | SSIM: 0.8345 | ENL:  3.49 | EPI: 0.7653 | Bias: -0.043 дБ
+15. RES -> BIL -> BIL            | Score: 37.95 | PSNR: 13.92 дБ | SSIM: 0.8418 | ENL:  3.40 | EPI: 0.7494 | Bias:  0.060 дБ
+
+=== TOP-15 3-STEP PIPELINES (by PSNR) ===
+ 1. BIL -> BIL -> BIL            | PSNR: 14.09 дБ | SSIM: 0.8504 | ENL:  3.24 | EPI: 0.7853 | Bias: -0.003 дБ | Score: 38.94
+ 2. BIL -> FTV -> BIL            | PSNR: 13.99 дБ | SSIM: 0.8456 | ENL:  3.30 | EPI: 0.8017 | Bias: -0.033 дБ | Score: 38.76
+ 3. BIL -> BIL -> FTV            | PSNR: 13.99 дБ | SSIM: 0.8457 | ENL:  3.26 | EPI: 0.7998 | Bias: -0.033 дБ | Score: 38.74
+ 4. FTV -> BIL -> BIL            | PSNR: 13.99 дБ | SSIM: 0.8451 | ENL:  3.33 | EPI: 0.7928 | Bias: -0.035 дБ | Score: 38.64
+ 5. BIL -> RES -> BIL            | PSNR: 13.94 дБ | SSIM: 0.8427 | ENL:  3.40 | EPI: 0.7825 | Bias:  0.061 дБ | Score: 38.31
+ 6. RES -> BIL -> BIL            | PSNR: 13.92 дБ | SSIM: 0.8418 | ENL:  3.40 | EPI: 0.7494 | Bias:  0.060 дБ | Score: 37.95
+ 7. ENH_LEE -> BIL -> BIL        | PSNR: 13.89 дБ | SSIM: 0.8355 | ENL:  3.52 | EPI: 0.7587 | Bias: -0.021 дБ | Score: 38.08
+ 8. BIL -> ENH_LEE -> BIL        | PSNR: 13.89 дБ | SSIM: 0.8363 | ENL:  3.49 | EPI: 0.7300 | Bias: -0.017 дБ | Score: 37.83
+ 9. BIL -> BIL -> RES            | PSNR: 13.88 дБ | SSIM: 0.8412 | ENL:  3.42 | EPI: 0.7763 | Bias:  0.068 дБ | Score: 38.13
+10. BIL -> BIL -> FRO            | PSNR: 13.84 дБ | SSIM: 0.8345 | ENL:  3.49 | EPI: 0.7653 | Bias: -0.043 дБ | Score: 37.96
+11. BIL -> BIL -> MED            | PSNR: 13.84 дБ | SSIM: 0.8414 | ENL:  3.21 | EPI: 0.6991 | Bias: -0.012 дБ | Score: 37.60
+12. BIL -> BIL -> ENH_LEE        | PSNR: 13.84 дБ | SSIM: 0.8352 | ENL:  3.51 | EPI: 0.6240 | Bias: -0.010 дБ | Score: 36.73
+13. BIL -> FRO -> BIL            | PSNR: 13.83 дБ | SSIM: 0.8338 | ENL:  3.50 | EPI: 0.7827 | Bias: -0.044 дБ | Score: 38.12
+14. FTV -> BIL -> MED            | PSNR: 13.83 дБ | SSIM: 0.8391 | ENL:  3.30 | EPI: 0.7461 | Bias: -0.047 дБ | Score: 37.83
+15. FTV -> FTV -> BIL            | PSNR: 13.82 дБ | SSIM: 0.8379 | ENL:  3.36 | EPI: 0.7855 | Bias: -0.073 дБ | Score: 38.07
+
+=== TOP-10 3-STEP PIPELINES (by SSIM) ===
+ 1. BIL -> BIL -> BIL            | SSIM: 0.8504 | PSNR: 14.09 дБ | ENL:  3.24 | EPI: 0.7853 | Bias: -0.003 дБ | Score: 38.94
+ 2. BIL -> BIL -> FTV            | SSIM: 0.8457 | PSNR: 13.99 дБ | ENL:  3.26 | EPI: 0.7998 | Bias: -0.033 дБ | Score: 38.74
+ 3. BIL -> FTV -> BIL            | SSIM: 0.8456 | PSNR: 13.99 дБ | ENL:  3.30 | EPI: 0.8017 | Bias: -0.033 дБ | Score: 38.76
+ 4. FTV -> BIL -> BIL            | SSIM: 0.8451 | PSNR: 13.99 дБ | ENL:  3.33 | EPI: 0.7928 | Bias: -0.035 дБ | Score: 38.64
+ 5. BIL -> RES -> BIL            | SSIM: 0.8427 | PSNR: 13.94 дБ | ENL:  3.40 | EPI: 0.7825 | Bias:  0.061 дБ | Score: 38.31
+ 6. RES -> BIL -> BIL            | SSIM: 0.8418 | PSNR: 13.92 дБ | ENL:  3.40 | EPI: 0.7494 | Bias:  0.060 дБ | Score: 37.95
+ 7. BIL -> BIL -> MED            | SSIM: 0.8414 | PSNR: 13.84 дБ | ENL:  3.21 | EPI: 0.6991 | Bias: -0.012 дБ | Score: 37.60
+ 8. BIL -> BIL -> RES            | SSIM: 0.8412 | PSNR: 13.88 дБ | ENL:  3.42 | EPI: 0.7763 | Bias:  0.068 дБ | Score: 38.13
+ 9. BIL -> MED -> BIL            | SSIM: 0.8405 | PSNR: 13.82 дБ | ENL:  3.21 | EPI: 0.6941 | Bias: -0.013 дБ | Score: 37.51
+10. FTV -> BIL -> MED            | SSIM: 0.8391 | PSNR: 13.83 дБ | ENL:  3.30 | EPI: 0.7461 | Bias: -0.047 дБ | Score: 37.83
+
+=== TOP-10 3-STEP PIPELINES (by ENL - Максимальное подавление спекла) ===
+ 1. MER -> BXC -> MER            | ENL:  4.85 | EPI: 0.0695 | PSNR: 12.51 дБ | SSIM: 0.7301 | Bias: -0.503 дБ | Score: 25.29
+ 2. MER -> MER -> BXC            | ENL:  4.78 | EPI: 0.2542 | PSNR: 12.69 дБ | SSIM: 0.7414 | Bias: -0.443 дБ | Score: 27.84
+ 3. BXC -> MER -> MER            | ENL:  4.75 | EPI: 0.0606 | PSNR: 12.47 дБ | SSIM: 0.7304 | Bias: -0.473 дБ | Score: 25.32
+ 4. MER -> FRO -> MER            | ENL:  4.63 | EPI: 0.1298 | PSNR: 12.61 дБ | SSIM: 0.7411 | Bias: -0.559 дБ | Score: 25.93
+ 5. MER -> MER -> ENH_LEE        | ENL:  4.60 | EPI: 0.1256 | PSNR: 12.72 дБ | SSIM: 0.7469 | Bias: -0.472 дБ | Score: 26.55
+ 6. MER -> ENH_LEE -> MER        | ENL:  4.59 | EPI: 0.0914 | PSNR: 12.58 дБ | SSIM: 0.7387 | Bias: -0.534 дБ | Score: 25.59
+ 7. MER -> MER -> FRO            | ENL:  4.55 | EPI: 0.2270 | PSNR: 12.77 дБ | SSIM: 0.7510 | Bias: -0.485 дБ | Score: 27.63
+ 8. FRO -> MER -> MER            | ENL:  4.55 | EPI: 0.1462 | PSNR: 12.60 дБ | SSIM: 0.7431 | Bias: -0.548 дБ | Score: 26.19
+ 9. ENH_LEE -> MER -> MER        | ENL:  4.55 | EPI: 0.1029 | PSNR: 12.58 дБ | SSIM: 0.7411 | Bias: -0.490 дБ | Score: 25.98
+10. MER -> KUA -> MER            | ENL:  4.47 | EPI: 0.1208 | PSNR: 12.59 дБ | SSIM: 0.7405 | Bias: -0.551 дБ | Score: 25.85
+
+=== ХУДШИЕ 5 3-STEP PIPELINES (по Composite Score) ===
+ 1. MER -> FRO -> MER            | Score: 25.93 | PSNR: 12.61 дБ | SSIM: 0.7411 | ENL:  4.63 | EPI: 0.1298 | Bias: -0.559 дБ
+ 2. MER -> KUA -> MER            | Score: 25.85 | PSNR: 12.59 дБ | SSIM: 0.7405 | ENL:  4.47 | EPI: 0.1208 | Bias: -0.551 дБ
+ 3. MER -> ENH_LEE -> MER        | Score: 25.59 | PSNR: 12.58 дБ | SSIM: 0.7387 | ENL:  4.59 | EPI: 0.0914 | Bias: -0.534 дБ
+ 4. BXC -> MER -> MER            | Score: 25.32 | PSNR: 12.47 дБ | SSIM: 0.7304 | ENL:  4.75 | EPI: 0.0606 | Bias: -0.473 дБ
+ 5. MER -> BXC -> MER            | Score: 25.29 | PSNR: 12.51 дБ | SSIM: 0.7301 | ENL:  4.85 | EPI: 0.0695 | Bias: -0.503 дБ
+
+=== ВАЛИДАЦИЯ НА РЕАЛЬНОМ ЛЕСЕ (ТОП КАНДИДАТЫ) ===
+ 1. [1 шага] BIL                          | ENL:   7.69 | EPI: 0.3124 | Bias: -0.085 дБ | Var(r): 0.0480
+ 2. [1 шага] RES                          | ENL:   8.22 | EPI: 0.9892 | Bias:  0.132 дБ | Var(r): 0.3924
+ 3. [1 шага] FTV                          | ENL:  13.56 | EPI: 0.9473 | Bias: -0.093 дБ | Var(r): 0.0820
+ 4. [1 шага] MED                          | ENL:  16.83 | EPI: -0.0163 | Bias: -0.293 дБ | Var(r): 0.1866
+ 5. [1 шага] FRO                          | ENL:  14.75 | EPI: 0.9483 | Bias: -0.004 дБ | Var(r): 0.0822
+ 6. [2 шага] BIL -> BIL                   | ENL:  10.36 | EPI: 0.2457 | Bias: -0.122 дБ | Var(r): 0.0829
+ 7. [2 шага] FTV -> BIL                   | ENL:  17.46 | EPI: 0.1271 | Bias: -0.136 дБ | Var(r): 0.1335
+ 8. [2 шага] BIL -> FTV                   | ENL:  17.48 | EPI: 0.1479 | Bias: -0.141 дБ | Var(r): 0.1296
+ 9. [2 шага] RES -> BIL                   | ENL:  13.86 | EPI: 0.2749 | Bias:  0.065 дБ | Var(r): 0.2290
+10. [2 шага] BIL -> RES                   | ENL:  12.21 | EPI: 0.2719 | Bias:  0.034 дБ | Var(r): 0.0928
+11. [2 шага] FTV -> RES                   | ENL:  17.28 | EPI: 0.9426 | Bias:  0.015 дБ | Var(r): 0.4407
+12. [2 шага] FRO -> BIL                   | ENL:  18.65 | EPI: 0.1050 | Bias: -0.041 дБ | Var(r): 0.1341
+13. [2 шага] FTV -> FTV                   | ENL:  19.00 | EPI: 0.9291 | Bias: -0.123 дБ | Var(r): 0.1238
+14. [2 шага] BIL -> FRO                   | ENL:  18.09 | EPI: 0.1573 | Bias: -0.086 дБ | Var(r): 0.1325
+15. [2 шага] ENH_LEE -> BIL               | ENL:  17.45 | EPI: 0.0933 | Bias: -0.057 дБ | Var(r): 0.1371
+16. [3 шага] BIL -> BIL -> BIL            | ENL:  12.85 | EPI: 0.1913 | Bias: -0.144 дБ | Var(r): 0.1080
+17. [3 шага] BIL -> FTV -> BIL            | ENL:  20.86 | EPI: 0.0923 | Bias: -0.151 дБ | Var(r): 0.1527
+18. [3 шага] BIL -> BIL -> FTV            | ENL:  19.43 | EPI: 0.1191 | Bias: -0.160 дБ | Var(r): 0.1447
+19. [3 шага] FTV -> BIL -> BIL            | ENL:  19.99 | EPI: 0.0891 | Bias: -0.141 дБ | Var(r): 0.1492
+20. [3 шага] BIL -> RES -> BIL            | ENL:  17.02 | EPI: 0.2156 | Bias:  0.009 дБ | Var(r): 0.1162
+21. [3 шага] BIL -> BIL -> RES            | ENL:  15.09 | EPI: 0.2058 | Bias: -0.007 дБ | Var(r): 0.1185
+22. [3 шага] BIL -> FRO -> BIL            | ENL:  21.49 | EPI: 0.0818 | Bias: -0.094 дБ | Var(r): 0.1518
+23. [3 шага] ENH_LEE -> BIL -> BIL        | ENL:  20.05 | EPI: 0.0873 | Bias: -0.063 дБ | Var(r): 0.1467
+24. [3 шага] FTV -> FTV -> BIL            | ENL:  22.59 | EPI: 0.0488 | Bias: -0.155 дБ | Var(r): 0.1659
+25. [3 шага] FTV -> BIL -> RES            | ENL:  20.88 | EPI: 0.0907 | Bias: -0.032 дБ | Var(r): 0.1519
