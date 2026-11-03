@@ -45,6 +45,7 @@ benchmark_results/
 
 # Downloaded articles, papers and raw PDF documents
 paper_results/
+papers/
 *.pdf
 
 # Giant pre-rendered HTML standalone bundles (>100MB, exceeds GitHub limit)

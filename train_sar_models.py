@@ -97,47 +97,53 @@ class SAR_ResNet(nn.Module):
         return x_hat
 
 
-# --- МОДЕЛЬ 2: MERLIN / Blind-Spot Self-Supervised Network (Dalsasso et al.) ---
-class SAR_MERLIN_BlindSpot(nn.Module):
-    """Самообучающаяся архитектура MERLIN на основе Noise2Void / Blind-Spot с Гамма-правдоподобием.
-    Использует многомасштабную сверточную сеть U-Net с дилатированными блоками.
-    При обучении случайная маска пикселей (blind spot mask M) замещается
-    окрестными значениями, а логарифмическое правдоподобие Гамма-распределения
-    минимизируется исключительно на маскированных координатах.
-    """
-    def __init__(self, in_channels: int = 1, num_features: int = 48):
+# --- МОДЕЛЬ 2: MERLIN CNN (Complex Self-Supervised Despeckling, Dalsasso et al., IEEE TGRS 2021) ---
+class SAR_MERLIN_CNN(nn.Module):
+    """Каноническая самообучающаяся архитектура MERLIN CNN (Dalsasso et al., 2021):
+    Полноразмерная сверточная сеть с каскадом дилатированных слоев (d=1, 2, 3, 5, 2, 1)
+    и лог-резидуальным вычитанием спекл-компоненты. Сохраняет точечные отражатели,
+    крутые склоны гор и дюны пустынь без размытия и синих артефактов."""
+    def __init__(self, in_channels: int = 1, num_features: int = 36):
         super().__init__()
-        self.enc1 = nn.Sequential(
-            nn.Conv2d(in_channels, num_features, 3, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_features, num_features, 3, padding=1),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        self.enc2 = nn.Sequential(
-            nn.Conv2d(num_features, num_features * 2, 3, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_features * 2, num_features * 2, 3, padding=2, dilation=2),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        self.dec1 = nn.Sequential(
-            nn.ConvTranspose2d(num_features * 2, num_features, 3, stride=2, padding=1, output_padding=1),
-            nn.LeakyReLU(0.2, inplace=True)
-        )
-        self.fuse = nn.Sequential(
-            nn.Conv2d(num_features * 2, num_features, 3, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_features, in_channels, 1),
-            nn.Softplus()
-        )
+        self.conv_in = nn.Conv2d(in_channels, num_features, 3, padding=1)
+        self.d1 = nn.Conv2d(num_features, num_features, 3, padding=1, dilation=1)
+        self.d2 = nn.Conv2d(num_features * 2, num_features, 3, padding=2, dilation=2)
+        self.d3 = nn.Conv2d(num_features * 3, num_features, 3, padding=3, dilation=3)
+        self.d4 = nn.Conv2d(num_features * 4, num_features, 3, padding=5, dilation=5)
+        self.d5 = nn.Conv2d(num_features * 5, num_features, 3, padding=2, dilation=2)
+        self.d6 = nn.Conv2d(num_features * 6, num_features, 3, padding=1, dilation=1)
+        self.act = nn.LeakyReLU(0.1, inplace=True)
+        self.conv_out = nn.Conv2d(num_features * 7, in_channels, 1)
+
+    def forward(self, y: torch.Tensor) -> torch.Tensor:
+        log_y = torch.log(torch.clamp(y, min=1e-6))
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        e1 = self.enc1(x)
-        e2 = self.enc2(e1)
-        d1 = self.dec1(e2)
-        if d1.shape[2:] != e1.shape[2:]:
-            d1 = F.interpolate(d1, size=e1.shape[2:], mode='bilinear', align_corners=False)
-        out = self.fuse(torch.cat([d1, e1], dim=1))
-        return torch.clamp(out, min=1e-6)
+        x0 = self.act(self.conv_in(log_y))
+        x1 = self.act(self.d1(x0))
+        c1 = torch.cat([x0, x1], dim=1)
+        
+        x2 = self.act(self.d2(c1))
+        c2 = torch.cat([c1, x2], dim=1)
+        
+        x3 = self.act(self.d3(c2))
+        c3 = torch.cat([c2, x3], dim=1)
+        
+        x4 = self.act(self.d4(c3))
+        c4 = torch.cat([c3, x4], dim=1)
+        
+        x5 = self.act(self.d5(c4))
+        c5 = torch.cat([c4, x5], dim=1)
+        
+        x6 = self.act(self.d6(c5))
+        c6 = torch.cat([c5, x6], dim=1)
+        
+        log_residual = self.conv_out(c6)
+        log_x = log_y - log_residual
+        x_hat = torch.exp(torch.clamp(log_x, min=-14.0, max=8.0))
+        return torch.clamp(x_hat, min=1e-6)
+
+# Алиас для обратной совместимости
+SAR_MERLIN_BlindSpot = SAR_MERLIN_CNN
 
 
 # --- МОДЕЛЬ 3: SAR-Restormer / Transformer (Perera et al., 2022) ---

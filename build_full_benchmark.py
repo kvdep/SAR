@@ -26,7 +26,7 @@ import torch.nn as nn
 from PIL import Image
 import xarray as xr
 
-from train_sar_models import SAR_ResNet, SAR_MERLIN_BlindSpot, SAR_Restormer
+from train_sar_models import SAR_ResNet, SAR_MERLIN_BlindSpot, SAR_Restormer, SAR_MERLIN_CNN
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -366,7 +366,7 @@ def main():
     model_resnet.load_state_dict(torch.load(os.path.join(weights_dir, "sar_resnet_vitale.pth"), map_location=device))
     model_resnet.eval()
 
-    model_merlin = SAR_MERLIN_BlindSpot(in_channels=1, num_features=48).to(device)
+    model_merlin = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device)
     p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
     if not os.path.exists(p_mer):
         p_mer = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
@@ -379,20 +379,7 @@ def main():
 
     solver_ftv = JointFTVSARP(alpha=1.25, K=11, device=device)
 
-    def run_dl_inference(im_np: np.ndarray, model) -> np.ndarray:
-        with torch.no_grad():
-            scale = float(np.percentile(im_np, 99.5))
-            if scale < 1e-4: scale = float(im_np.max())
-            scale = max(scale, 1e-4)
-            norm_im = np.clip(im_np / scale, 0.0, 10.0).astype(np.float32)
-            t = torch.from_numpy(norm_im).unsqueeze(0).unsqueeze(0).to(device)
-            if isinstance(model, SAR_Restormer):
-                out = model(t)
-            else:
-                with torch.amp.autocast('cuda'):
-                    out = model(t)
-            res = out.squeeze().float().cpu().numpy() * scale
-        return np.maximum(np.nan_to_num(res, nan=1e-6), 1e-6)
+    from sar_server import run_dl as run_dl_inference
 
     app_data = {}
 

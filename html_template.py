@@ -1465,12 +1465,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             let curr = new Float32Array(rawLin);
             for (const s of stages) {
-                const op = s.toUpperCase();
-                if (op === "BXC") curr = filterBoxcarJS(curr, W, H, 5);
-                else if (op === "MED") curr = filterMedianJS(curr, W, H, 5);
-                else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, 5);
-                else if (op === "BIL" || op === "FTV" || op === "RES" || op === "MER" || op === "RST") curr = filterBilateralJS(curr, W, H, 5, 2.0, 0.12);
-                else curr = filterLeeJS(curr, W, H, 5);
+                const op = (typeof s === 'string' ? s : (s && s.op ? s.op : '')).toUpperCase();
+                const kw = (typeof s === 'object' && s && s.kwargs) ? s.kwargs : {};
+                const w = parseInt(kw.w || 5, 10);
+                if (op === "BXC") curr = filterBoxcarJS(curr, W, H, w);
+                else if (op === "MED") curr = filterMedianJS(curr, W, H, w);
+                else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, w);
+                else if (op === "BIL" || op === "FTV" || op === "RES" || op === "MER" || op === "RST") curr = filterBilateralJS(curr, W, H, w, 2.0, 0.12);
+                else curr = filterLeeJS(curr, W, H, w);
             }
 
             for (let i = 0; i < W * H; i++) {
@@ -1518,17 +1520,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 let curG = new Float32Array(chG);
                 let curB = new Float32Array(chB);
                 for (const s of stages) {
-                    const op = s.toUpperCase();
+                    const op = (typeof s === 'string' ? s : (s && s.op ? s.op : '')).toUpperCase();
+                    const kw = (typeof s === 'object' && s && s.kwargs) ? s.kwargs : {};
+                    const w = parseInt(kw.w || 5, 10);
                     if (op === "BXC") {
-                        curR = filterBoxcarJS(curR, W, H, 5); curG = filterBoxcarJS(curG, W, H, 5); curB = filterBoxcarJS(curB, W, H, 5);
+                        curR = filterBoxcarJS(curR, W, H, w); curG = filterBoxcarJS(curG, W, H, w); curB = filterBoxcarJS(curB, W, H, w);
                     } else if (op === "MED") {
-                        curR = filterMedianJS(curR, W, H, 5); curG = filterMedianJS(curG, W, H, 5); curB = filterMedianJS(curB, W, H, 5);
+                        curR = filterMedianJS(curR, W, H, w); curG = filterMedianJS(curG, W, H, w); curB = filterMedianJS(curB, W, H, w);
                     } else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") {
-                        curR = filterLeeJS(curR, W, H, 5); curG = filterLeeJS(curG, W, H, 5); curB = filterLeeJS(curB, W, H, 5);
+                        curR = filterLeeJS(curR, W, H, w); curG = filterLeeJS(curG, W, H, w); curB = filterLeeJS(curB, W, H, w);
                     } else {
-                        curR = filterBilateralJS(curR, W, H, 5, 2.0, 0.15);
-                        curG = filterBilateralJS(curG, W, H, 5, 2.0, 0.15);
-                        curB = filterBilateralJS(curB, W, H, 5, 2.0, 0.15);
+                        curR = filterBilateralJS(curR, W, H, w, 2.0, 0.15);
+                        curG = filterBilateralJS(curG, W, H, w, 2.0, 0.15);
+                        curB = filterBilateralJS(curB, W, H, w, 2.0, 0.15);
                     }
                 }
                 for (let i = 0; i < W * H; i++) {
@@ -1547,11 +1551,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }
                 let curr = new Float32Array(gray);
                 for (const s of stages) {
-                    const op = s.toUpperCase();
-                    if (op === "BXC") curr = filterBoxcarJS(curr, W, H, 5);
-                    else if (op === "MED") curr = filterMedianJS(curr, W, H, 5);
-                    else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, 5);
-                    else curr = filterBilateralJS(curr, W, H, 5, 2.0, 0.15);
+                    const op = (typeof s === 'string' ? s : (s && s.op ? s.op : '')).toUpperCase();
+                    const kw = (typeof s === 'object' && s && s.kwargs) ? s.kwargs : {};
+                    const w = parseInt(kw.w || 5, 10);
+                    if (op === "BXC") curr = filterBoxcarJS(curr, W, H, w);
+                    else if (op === "MED") curr = filterMedianJS(curr, W, H, w);
+                    else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, w);
+                    else curr = filterBilateralJS(curr, W, H, w, 2.0, 0.15);
                 }
                 for (let i = 0; i < W * H; i++) {
                     const v = Math.min(255, Math.max(0, Math.round(curr[i] * 255.0)));

@@ -1,0 +1,3 @@
+Check terms at https://info.arxiv.org/help/api/index.html. Always check the license of papers retrieved by arXiv for any restrictions.
+Recorded at: 2026-11-03T12:06:50+03:00
+Workspace: D:\ПРОФ\ВУЗ\ВТСК\SAR

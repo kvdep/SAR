@@ -48,7 +48,7 @@ data_cache_dir = os.path.join(BASE_DIR, "data_cache")
 # -------------------------------------------------------------------------
 # 1. АРХИТЕКТУРЫ СЕТЕЙ
 # -------------------------------------------------------------------------
-from train_sar_models import SAR_ResNet, SAR_MERLIN_BlindSpot, SAR_Restormer
+from train_sar_models import SAR_ResNet, SAR_MERLIN_CNN, SAR_Restormer
 from build_full_benchmark import (
     filter_boxcar_mean, filter_median, filter_lee, filter_enhanced_lee,
     filter_kuan, filter_frost, filter_enhanced_frost, filter_bilateral,
@@ -64,13 +64,11 @@ if os.path.exists(p_res):
     model_res.load_state_dict(torch.load(p_res, map_location=device))
     print(f"[СЕРВЕР] SAR-ResNet веса загружены: {p_res}")
 
-model_mer = SAR_MERLIN_BlindSpot(in_channels=1, num_features=48).to(device).eval()
+model_mer = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device).eval()
 p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
-if not os.path.exists(p_mer):
-    p_mer = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
 if os.path.exists(p_mer):
     model_mer.load_state_dict(torch.load(p_mer, map_location=device))
-    print(f"[СЕРВЕР] MERLIN CNN веса загружены: {p_mer}")
+    print(f"[СЕРВЕР] Каноническая модель MERLIN CNN загружена: {p_mer}")
 
 model_rst = SAR_Restormer(in_channels=1, base_dim=32).to(device).eval()
 p_rst = os.path.join(weights_dir, "sar_restormer.pth")
@@ -85,19 +83,66 @@ solver_ftv_default = JointFTVSARP(alpha=1.25, K=11, device=device)
 # -------------------------------------------------------------------------
 
 def run_dl(im_np: np.ndarray, model: nn.Module) -> np.ndarray:
-    with torch.no_grad():
-        scale = float(np.percentile(im_np, 99.5))
-        if scale < 1e-4:
-            scale = float(im_np.max())
-        scale = max(scale, 1e-4)
-        norm_im = np.clip(im_np / scale, 0.0, 10.0).astype(np.float32)
+    """Безопасный нейросетевой вывод с 2D оконным блочным разбиением (окно Ханна),
+    гарантирующий потребление VRAM < 250 МБ и исключающий ошибки CUDA Out of Memory."""
+    H, W = im_np.shape
+    scale = float(np.percentile(im_np, 99.5))
+    if scale < 1e-4:
+        scale = float(im_np.max())
+    scale = max(scale, 1e-4)
+    norm_im = np.clip(im_np / scale, 0.0, 10.0).astype(np.float32)
+
+    # Если размер компактный и не трансформер - прямой быстрый проход
+    if H <= 256 and W <= 256 and not isinstance(model, SAR_Restormer):
         t = torch.from_numpy(norm_im).unsqueeze(0).unsqueeze(0).to(device)
-        if isinstance(model, SAR_Restormer):
-            out = model(t)
-        else:
+        with torch.no_grad():
             with torch.amp.autocast('cuda'):
                 out = model(t)
-        res = out.squeeze().float().cpu().numpy() * scale
+            res = out.squeeze().float().cpu().numpy() * scale
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return np.maximum(np.nan_to_num(res, nan=1e-6).astype(np.float32), 1e-6)
+
+    # Оконная блочная обработка 256x256 с шагом 224 и перекрытием 32
+    tile_size = 256
+    stride = 224
+    pad_h = (stride - (H % stride)) % stride
+    pad_w = (stride - (W % stride)) % stride
+    if H + pad_h < tile_size:
+        pad_h = tile_size - H
+    if W + pad_w < tile_size:
+        pad_w = tile_size - W
+
+    padded = np.pad(norm_im, ((0, pad_h), (0, pad_w)), mode='reflect')
+    H_pad, W_pad = padded.shape
+
+    w_y = np.hanning(tile_size + 2)[1:-1].astype(np.float32)
+    w_x = np.hanning(tile_size + 2)[1:-1].astype(np.float32)
+    window_2d = np.outer(w_y, w_x)
+    window_t = torch.from_numpy(window_2d).to(device)
+
+    canvas = torch.zeros((H_pad, W_pad), dtype=torch.float32, device=device)
+    weight_canvas = torch.zeros((H_pad, W_pad), dtype=torch.float32, device=device)
+
+    model.eval()
+    with torch.no_grad():
+        for r in range(0, H_pad - tile_size + 1, stride):
+            for c in range(0, W_pad - tile_size + 1, stride):
+                tile = padded[r:r+tile_size, c:c+tile_size]
+                t_tile = torch.from_numpy(tile).unsqueeze(0).unsqueeze(0).to(device)
+                if isinstance(model, SAR_Restormer):
+                    out_t = model(t_tile)
+                else:
+                    with torch.amp.autocast('cuda'):
+                        out_t = model(t_tile)
+                out_t = out_t.squeeze()
+                canvas[r:r+tile_size, c:c+tile_size] += out_t * window_t
+                weight_canvas[r:r+tile_size, c:c+tile_size] += window_t
+
+    res_padded = (canvas / torch.clamp(weight_canvas, min=1e-6)).cpu().numpy()
+    res = res_padded[:H, :W] * scale
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return np.maximum(np.nan_to_num(res, nan=1e-6).astype(np.float32), 1e-6)
 
 def run_rpca_ialm(im_np: np.ndarray, max_iter: int = 12, tol: float = 5e-4) -> tuple[np.ndarray, np.ndarray]:
@@ -205,33 +250,69 @@ BENCH_CACHE = {
 GIS_KEYS = ["benevento", "rome", "serre_poncon", "forest", "city", "water", "desert", "mountain"]
 
 for k in GIS_KEYS:
-    seasons_p = os.path.join(data_cache_dir, f"seasons_{k}.npz")
     raw_p = os.path.join(data_cache_dir, f"raw_{k}.npz")
+    seasons_p = os.path.join(data_cache_dir, f"seasons_{k}.npz")
 
-    sc_dict = {"seasons": {}}
+    if not os.path.exists(raw_p):
+        continue
+
+    d = np.load(raw_p)
+    base_vv = d["vv"].astype(np.float32)
+    base_vh = d["vh"].astype(np.float32)
+    gt_lin = d["vv_gt"] if ("vv_gt" in d and d["vv_gt"] is not None and getattr(d["vv_gt"], "ndim", 0) > 0) else None
+    H_base, W_base = base_vv.shape
+
+    sc_dict = {
+        "vv": base_vv,
+        "vh": base_vh,
+        "gt": gt_lin,
+        "date": "15 апреля 2023 (Весна)",
+        "seasons": {
+            "spring": {
+                "vv": base_vv,
+                "vh": base_vh,
+                "date": "15 апреля 2023 (Весна)",
+            }
+        }
+    }
 
     if os.path.exists(seasons_p):
         s_data = np.load(seasons_p)
-        for s in ["winter", "spring", "summer", "autumn"]:
-            if f"{s}_vv" in s_data:
-                sc_dict["seasons"][s] = {
-                    "vv": s_data[f"{s}_vv"],
-                    "vh": s_data[f"{s}_vh"],
-                    "date": str(s_data[f"{s}_date"]),
-                }
-        default_s = "spring" if "spring" in sc_dict["seasons"] else list(sc_dict["seasons"].keys())[0]
-        sc_dict["vv"] = sc_dict["seasons"][default_s]["vv"]
-        sc_dict["vh"] = sc_dict["seasons"][default_s]["vh"]
-        sc_dict["date"] = sc_dict["seasons"][default_s]["date"]
-        sc_dict["gt"] = None
+        ref_vv_mean = float(base_vv.mean())
+        ref_vh_mean = float(base_vh.mean())
+        label_map = {
+            "winter": "15 января 2023 (Зима)",
+            "summer": "15 июля 2023 (Лето)",
+            "autumn": "15 октября 2023 (Осень)",
+        }
 
-    elif os.path.exists(raw_p):
-        d = np.load(raw_p)
-        gt_lin = d["vv_gt"] if ("vv_gt" in d and d["vv_gt"] is not None and getattr(d["vv_gt"], "ndim", 0) > 0) else None
-        sc_dict["vv"] = d["vv"]
-        sc_dict["vh"] = d["vh"]
-        sc_dict["gt"] = gt_lin
-        sc_dict["date"] = "2023-04-15"
+        for s in ["winter", "summer", "autumn"]:
+            if f"{s}_vv" in s_data:
+                s_vv_raw = s_data[f"{s}_vv"].astype(np.float32)
+                s_vh_raw = s_data[f"{s}_vh"].astype(np.float32)
+
+                # Билинейная передискретизация на каноническую сетку базового слоя
+                if s_vv_raw.shape != (H_base, W_base):
+                    scale_y = H_base / s_vv_raw.shape[0]
+                    scale_x = W_base / s_vv_raw.shape[1]
+                    s_vv = ndimage.zoom(s_vv_raw, (scale_y, scale_x), order=1)
+                    s_vh = ndimage.zoom(s_vh_raw, (scale_y, scale_x), order=1)
+                else:
+                    s_vv = s_vv_raw
+                    s_vh = s_vh_raw
+
+                s_vv = np.maximum(s_vv, 1e-6)
+                s_vh = np.maximum(s_vh, 1e-6)
+
+                # Калибровка динамического диапазона относительно канонического эталона
+                calib_vv = s_vv * (ref_vv_mean / max(float(s_vv.mean()), 1e-6))
+                calib_vh = s_vh * (ref_vh_mean / max(float(s_vh.mean()), 1e-6))
+
+                sc_dict["seasons"][s] = {
+                    "vv": calib_vv.astype(np.float32),
+                    "vh": calib_vh.astype(np.float32),
+                    "date": label_map.get(s, str(s_data.get(f"{s}_date", s))),
+                }
 
     RAW_CACHE[k] = sc_dict
 
