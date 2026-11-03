@@ -57,6 +57,9 @@ from train_sar_models import (
     MERLIN_ResUNet_Deep,
     MERLIN_UNet_Base,
     SAR_MERLIN_BlindSpot_Legacy,
+    SAR_YOLO26,
+    SAR_Restormer_V2,
+    MERLIN_Scale_Study,
 )
 from build_full_benchmark import (
     filter_boxcar_mean, filter_median, filter_lee, filter_enhanced_lee,
@@ -117,7 +120,35 @@ model_rst = SAR_Restormer(in_channels=1, base_dim=32).to(device).eval()
 p_rst = os.path.join(weights_dir, "sar_restormer.pth")
 if os.path.exists(p_rst):
     model_rst.load_state_dict(torch.load(p_rst, map_location=device))
-    print(f"[СЕРВЕР] SAR-Restormer веса загружены: {p_rst}")
+    print(f"[СЕРВЕР] SAR-Restormer V2 веса загружены: {p_rst}")
+
+# 6. MERLIN Gamma MLE Champion (EPI=1.001, Moran I=0.0609, PSNR=43.17 dB)
+model_mer_gammamle = MERLIN_Scale_Study(in_channels=1, num_features=36, depth=6).to(device).eval()
+p_mer_gammamle = os.path.join(weights_dir, "sar_merlin_gammamle.pth")
+if os.path.exists(p_mer_gammamle):
+    model_mer_gammamle.load_state_dict(torch.load(p_mer_gammamle, map_location=device))
+    print(f"[СЕРВЕР] MERLIN Gamma MLE веса загружены: {p_mer_gammamle}")
+
+# 7. MERLIN Extreme-Deep 10L (1.14M параметров)
+model_mer_extremedeep = MERLIN_Scale_Study(in_channels=1, num_features=48, depth=10).to(device).eval()
+p_mer_extremedeep = os.path.join(weights_dir, "sar_merlin_extremedeep.pth")
+if os.path.exists(p_mer_extremedeep):
+    model_mer_extremedeep.load_state_dict(torch.load(p_mer_extremedeep, map_location=device))
+    print(f"[СЕРВЕР] MERLIN Extreme-Deep 10L веса загружены: {p_mer_extremedeep}")
+
+# 8. YOLO26-Small (Чемпион YOLO26, 37k параметров, PSNR=41.79 dB, Var(r)=0.0815)
+model_yolo26_s = SAR_YOLO26(width=32, num_blocks=3).to(device).eval()
+p_yolo26_s = os.path.join(weights_dir, "sar_yolo26_small.pth")
+if os.path.exists(p_yolo26_s):
+    model_yolo26_s.load_state_dict(torch.load(p_yolo26_s, map_location=device))
+    print(f"[СЕРВЕР] YOLO26-Small веса загружены: {p_yolo26_s}")
+
+# 9. YOLO26-Nano (Ультралегкая модель, 7.6k параметров, 11 мс)
+model_yolo26_n = SAR_YOLO26(width=16, num_blocks=2).to(device).eval()
+p_yolo26_n = os.path.join(weights_dir, "sar_yolo26_nano.pth")
+if os.path.exists(p_yolo26_n):
+    model_yolo26_n.load_state_dict(torch.load(p_yolo26_n, map_location=device))
+    print(f"[СЕРВЕР] YOLO26-Nano веса загружены: {p_yolo26_n}")
 
 solver_ftv_default = JointFTVSARP(alpha=1.25, K=11, device=device)
 
@@ -275,7 +306,13 @@ OPERATORS = {
     "MER_RES": lambda x, **kw: run_dl(x, model_mer_res),
     "MER_BASE": lambda x, **kw: run_dl(x, model_mer_base),
     "MER_BLIND": lambda x, **kw: run_dl(x, model_mer_blind),
+    "MER_GAMMAMLE": lambda x, **kw: run_dl(x, model_mer_gammamle),
+    "MER_EXTREMEDEEP": lambda x, **kw: run_dl(x, model_mer_extremedeep),
     "RST": lambda x, **kw: run_dl(x, model_rst),
+    "RST_V2": lambda x, **kw: run_dl(x, model_rst),
+    "YOLO26": lambda x, **kw: run_dl(x, model_yolo26_s),
+    "YOLO26_S": lambda x, **kw: run_dl(x, model_yolo26_s),
+    "YOLO26_N": lambda x, **kw: run_dl(x, model_yolo26_n),
 
     # 4. Аналитический метод НИР (Robust PCA IALM)
     "RPCA": lambda x, **kw: run_rpca_ialm(x, max_iter=int(kw.get("max_iter", 12)), tol=float(kw.get("tol", 5e-4)))[0],

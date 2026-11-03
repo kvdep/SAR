@@ -1,0 +1,2472 @@
+[
+  {
+    "params": 7601,
+    "mean_enl": 84.87,
+    "mean_epi": 0.365,
+    "mean_var_r": 0.0902,
+    "mean_moran_i": 0.1304,
+    "mean_abs_bias": 0.061,
+    "mean_psnr_gt": 39.07,
+    "mean_ssim_gt": 0.984,
+    "terrains": {
+      "benevento": {
+        "enl": 48.56,
+        "epi": 0.607,
+        "var_r": 0.0037,
+        "moran_i": 0.1286,
+        "bias_db": -0.067,
+        "psnr": 41.54,
+        "ssim": 0.992,
+        "latency_ms": 29.5
+      },
+      "rome": {
+        "enl": 18.38,
+        "epi": 0.477,
+        "var_r": 0.0205,
+        "moran_i": 0.1404,
+        "bias_db": -0.164,
+        "psnr": 33.33,
+        "ssim": 0.963,
+        "latency_ms": 15.6
+      },
+      "serre_poncon": {
+        "enl": 456.85,
+        "epi": 0.821,
+        "var_r": 0.0021,
+        "moran_i": 0.1702,
+        "bias_db": -0.005,
+        "psnr": 42.35,
+        "ssim": 0.998,
+        "latency_ms": 18.0
+      },
+      "forest": {
+        "enl": 45.28,
+        "epi": 0.154,
+        "var_r": 0.0777,
+        "moran_i": 0.0939,
+        "bias_db": 0.004,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.4
+      },
+      "city": {
+        "enl": 4.68,
+        "epi": 0.256,
+        "var_r": 0.2218,
+        "moran_i": 0.1775,
+        "bias_db": -0.085,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 10.6
+      },
+      "mountain": {
+        "enl": 17.78,
+        "epi": 0.261,
+        "var_r": 0.0887,
+        "moran_i": 0.1387,
+        "bias_db": -0.021,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.3
+      },
+      "desert": {
+        "enl": 34.05,
+        "epi": 0.197,
+        "var_r": 0.2296,
+        "moran_i": 0.1277,
+        "bias_db": 0.095,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 17.5
+      },
+      "water": {
+        "enl": 53.37,
+        "epi": 0.148,
+        "var_r": 0.0772,
+        "moran_i": 0.0659,
+        "bias_db": 0.046,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.2
+      }
+    },
+    "name": "YOLO26-Nano",
+    "train_time": 23.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_yolo26_nano.pth"
+  },
+  {
+    "params": 37249,
+    "mean_enl": 79.3,
+    "mean_epi": 0.439,
+    "mean_var_r": 0.0815,
+    "mean_moran_i": 0.1085,
+    "mean_abs_bias": 0.067,
+    "mean_psnr_gt": 41.79,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 48.12,
+        "epi": 0.819,
+        "var_r": 0.0007,
+        "moran_i": 0.0811,
+        "bias_db": -0.027,
+        "psnr": 45.44,
+        "ssim": 0.997,
+        "latency_ms": 34.4
+      },
+      "rome": {
+        "enl": 18.23,
+        "epi": 0.692,
+        "var_r": 0.0064,
+        "moran_i": 0.103,
+        "bias_db": -0.121,
+        "psnr": 34.38,
+        "ssim": 0.971,
+        "latency_ms": 27.0
+      },
+      "serre_poncon": {
+        "enl": 434.23,
+        "epi": 0.87,
+        "var_r": 0.0007,
+        "moran_i": 0.1096,
+        "bias_db": 0.001,
+        "psnr": 45.55,
+        "ssim": 0.999,
+        "latency_ms": 26.9
+      },
+      "forest": {
+        "enl": 37.83,
+        "epi": 0.202,
+        "var_r": 0.0661,
+        "moran_i": 0.0894,
+        "bias_db": -0.032,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 15.9
+      },
+      "city": {
+        "enl": 4.38,
+        "epi": 0.261,
+        "var_r": 0.2,
+        "moran_i": 0.1733,
+        "bias_db": -0.24,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 14.8
+      },
+      "mountain": {
+        "enl": 16.41,
+        "epi": 0.276,
+        "var_r": 0.0774,
+        "moran_i": 0.1326,
+        "bias_db": -0.035,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 15.0
+      },
+      "desert": {
+        "enl": 29.54,
+        "epi": 0.209,
+        "var_r": 0.2331,
+        "moran_i": 0.1192,
+        "bias_db": -0.069,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 22.1
+      },
+      "water": {
+        "enl": 45.68,
+        "epi": 0.186,
+        "var_r": 0.0673,
+        "moran_i": 0.0596,
+        "bias_db": 0.013,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 14.6
+      }
+    },
+    "name": "YOLO26-Small",
+    "train_time": 32.1,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_yolo26_small.pth"
+  },
+  {
+    "params": 177985,
+    "mean_enl": 75.56,
+    "mean_epi": 0.428,
+    "mean_var_r": 0.0861,
+    "mean_moran_i": 0.1187,
+    "mean_abs_bias": 0.071,
+    "mean_psnr_gt": 42.0,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 48.5,
+        "epi": 0.806,
+        "var_r": 0.0006,
+        "moran_i": 0.1083,
+        "bias_db": -0.091,
+        "psnr": 45.73,
+        "ssim": 0.997,
+        "latency_ms": 44.2
+      },
+      "rome": {
+        "enl": 18.3,
+        "epi": 0.707,
+        "var_r": 0.0046,
+        "moran_i": 0.1028,
+        "bias_db": -0.189,
+        "psnr": 34.64,
+        "ssim": 0.972,
+        "latency_ms": 39.9
+      },
+      "serre_poncon": {
+        "enl": 398.12,
+        "epi": 0.874,
+        "var_r": 0.0005,
+        "moran_i": 0.1564,
+        "bias_db": -0.049,
+        "psnr": 45.64,
+        "ssim": 0.999,
+        "latency_ms": 40.7
+      },
+      "forest": {
+        "enl": 35.96,
+        "epi": 0.19,
+        "var_r": 0.0682,
+        "moran_i": 0.0841,
+        "bias_db": -0.057,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.8
+      },
+      "city": {
+        "enl": 4.31,
+        "epi": 0.239,
+        "var_r": 0.2115,
+        "moran_i": 0.1731,
+        "bias_db": -0.078,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 26.6
+      },
+      "mountain": {
+        "enl": 16.83,
+        "epi": 0.251,
+        "var_r": 0.0831,
+        "moran_i": 0.1352,
+        "bias_db": -0.049,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 26.2
+      },
+      "desert": {
+        "enl": 30.01,
+        "epi": 0.19,
+        "var_r": 0.2503,
+        "moran_i": 0.1264,
+        "bias_db": -0.043,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 40.8
+      },
+      "water": {
+        "enl": 52.44,
+        "epi": 0.171,
+        "var_r": 0.0702,
+        "moran_i": 0.063,
+        "bias_db": -0.014,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 26.9
+      }
+    },
+    "name": "YOLO26-Medium",
+    "train_time": 52.1,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_yolo26_medium.pth"
+  },
+  {
+    "params": 546721,
+    "mean_enl": 95.19,
+    "mean_epi": 0.326,
+    "mean_var_r": 0.0844,
+    "mean_moran_i": 0.1476,
+    "mean_abs_bias": 0.138,
+    "mean_psnr_gt": 37.13,
+    "mean_ssim_gt": 0.98,
+    "terrains": {
+      "benevento": {
+        "enl": 57.75,
+        "epi": 0.483,
+        "var_r": 0.0063,
+        "moran_i": 0.1901,
+        "bias_db": -0.13,
+        "psnr": 39.33,
+        "ssim": 0.986,
+        "latency_ms": 151.2
+      },
+      "rome": {
+        "enl": 20.66,
+        "epi": 0.414,
+        "var_r": 0.0262,
+        "moran_i": 0.1691,
+        "bias_db": -0.189,
+        "psnr": 32.93,
+        "ssim": 0.958,
+        "latency_ms": 176.1
+      },
+      "serre_poncon": {
+        "enl": 542.43,
+        "epi": 0.611,
+        "var_r": 0.0051,
+        "moran_i": 0.2454,
+        "bias_db": -0.085,
+        "psnr": 39.13,
+        "ssim": 0.997,
+        "latency_ms": 77.0
+      },
+      "forest": {
+        "enl": 33.79,
+        "epi": 0.209,
+        "var_r": 0.0645,
+        "moran_i": 0.084,
+        "bias_db": -0.076,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.5
+      },
+      "city": {
+        "enl": 4.29,
+        "epi": 0.259,
+        "var_r": 0.2,
+        "moran_i": 0.1711,
+        "bias_db": -0.431,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.1
+      },
+      "mountain": {
+        "enl": 17.69,
+        "epi": 0.256,
+        "var_r": 0.0785,
+        "moran_i": 0.1328,
+        "bias_db": -0.04,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.0
+      },
+      "desert": {
+        "enl": 31.43,
+        "epi": 0.203,
+        "var_r": 0.2294,
+        "moran_i": 0.1236,
+        "bias_db": -0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 77.2
+      },
+      "water": {
+        "enl": 53.49,
+        "epi": 0.176,
+        "var_r": 0.0656,
+        "moran_i": 0.065,
+        "bias_db": 0.143,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.4
+      }
+    },
+    "name": "YOLO26-Large",
+    "train_time": 122.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_yolo26_large.pth"
+  },
+  {
+    "params": 37249,
+    "mean_enl": 49.35,
+    "mean_epi": 0.852,
+    "mean_var_r": 1855570.9915,
+    "mean_moran_i": 0.1257,
+    "mean_abs_bias": 0.156,
+    "mean_psnr_gt": 40.02,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 46.27,
+        "epi": 0.884,
+        "var_r": 0.0005,
+        "moran_i": 0.2283,
+        "bias_db": -0.071,
+        "psnr": 45.13,
+        "ssim": 0.997,
+        "latency_ms": 29.4
+      },
+      "rome": {
+        "enl": 17.65,
+        "epi": 0.872,
+        "var_r": 213408.9531,
+        "moran_i": 0.0,
+        "bias_db": -0.039,
+        "psnr": 34.49,
+        "ssim": 0.972,
+        "latency_ms": 24.2
+      },
+      "serre_poncon": {
+        "enl": 296.1,
+        "epi": 0.923,
+        "var_r": 0.0024,
+        "moran_i": 0.4188,
+        "bias_db": -0.058,
+        "psnr": 40.43,
+        "ssim": 0.998,
+        "latency_ms": 23.1
+      },
+      "forest": {
+        "enl": 9.53,
+        "epi": 0.819,
+        "var_r": 17970.8359,
+        "moran_i": -0.0,
+        "bias_db": -0.074,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 15.1
+      },
+      "city": {
+        "enl": 1.63,
+        "epi": 0.87,
+        "var_r": 14560094.0,
+        "moran_i": 0.0565,
+        "bias_db": 0.013,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 14.3
+      },
+      "mountain": {
+        "enl": 6.11,
+        "epi": 0.833,
+        "var_r": 18.6137,
+        "moran_i": 0.0306,
+        "bias_db": -0.01,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 14.2
+      },
+      "desert": {
+        "enl": 8.09,
+        "epi": 0.806,
+        "var_r": 51180.9453,
+        "moran_i": 0.156,
+        "bias_db": -0.484,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 21.5
+      },
+      "water": {
+        "enl": 9.41,
+        "epi": 0.806,
+        "var_r": 1894.5814,
+        "moran_i": 0.115,
+        "bias_db": -0.5,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 14.1
+      }
+    },
+    "name": "YOLO26-LinearResidual",
+    "train_time": 31.1,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_yolo26_linearresidual.pth"
+  },
+  {
+    "params": 28449,
+    "mean_enl": 14.61,
+    "mean_epi": 0.713,
+    "mean_var_r": 12367181.9683,
+    "mean_moran_i": 0.2055,
+    "mean_abs_bias": 2.038,
+    "mean_psnr_gt": 24.5,
+    "mean_ssim_gt": 0.756,
+    "terrains": {
+      "benevento": {
+        "enl": 42.1,
+        "epi": 0.847,
+        "var_r": 52284.082,
+        "moran_i": 0.0705,
+        "bias_db": -0.123,
+        "psnr": 37.21,
+        "ssim": 0.98,
+        "latency_ms": 12.3
+      },
+      "rome": {
+        "enl": 17.81,
+        "epi": 0.799,
+        "var_r": 206642.75,
+        "moran_i": 0.1366,
+        "bias_db": -0.032,
+        "psnr": 29.43,
+        "ssim": 0.917,
+        "latency_ms": 10.5
+      },
+      "serre_poncon": {
+        "enl": 32.54,
+        "epi": 0.947,
+        "var_r": 12720530.0,
+        "moran_i": 0.4317,
+        "bias_db": -0.165,
+        "psnr": 6.87,
+        "ssim": 0.372,
+        "latency_ms": 10.5
+      },
+      "forest": {
+        "enl": 10.57,
+        "epi": 0.787,
+        "var_r": 119145.9141,
+        "moran_i": 0.0656,
+        "bias_db": -0.118,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 7.3
+      },
+      "city": {
+        "enl": 1.64,
+        "epi": 0.785,
+        "var_r": 12007815.0,
+        "moran_i": 0.1367,
+        "bias_db": -0.023,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 5.9
+      },
+      "mountain": {
+        "enl": 6.78,
+        "epi": 0.776,
+        "var_r": 10547236.0,
+        "moran_i": 0.295,
+        "bias_db": -0.033,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 6.2
+      },
+      "desert": {
+        "enl": 5.09,
+        "epi": 0.542,
+        "var_r": 33827756.0,
+        "moran_i": 0.2627,
+        "bias_db": -3.29,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 9.8
+      },
+      "water": {
+        "enl": 0.31,
+        "epi": 0.224,
+        "var_r": 29456046.0,
+        "moran_i": 0.2455,
+        "bias_db": -12.524,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 6.2
+      }
+    },
+    "name": "ResNet-Nano-5L-32C",
+    "train_time": 9.2,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_nano_5l_32c.pth"
+  },
+  {
+    "params": 556097,
+    "mean_enl": 52.23,
+    "mean_epi": 1.0,
+    "mean_var_r": 407183072.3052,
+    "mean_moran_i": 0.1878,
+    "mean_abs_bias": 0.023,
+    "mean_psnr_gt": 42.85,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 46.1,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.1358,
+        "bias_db": -0.008,
+        "psnr": 47.49,
+        "ssim": 0.998,
+        "latency_ms": 44.2
+      },
+      "rome": {
+        "enl": 17.72,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.3472,
+        "bias_db": 0.007,
+        "psnr": 34.43,
+        "ssim": 0.972,
+        "latency_ms": 42.9
+      },
+      "serre_poncon": {
+        "enl": 324.34,
+        "epi": 1.001,
+        "var_r": 0.0001,
+        "moran_i": 0.3436,
+        "bias_db": -0.004,
+        "psnr": 46.63,
+        "ssim": 0.999,
+        "latency_ms": 41.5
+      },
+      "forest": {
+        "enl": 7.86,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.1223,
+        "bias_db": -0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.7
+      },
+      "city": {
+        "enl": 1.42,
+        "epi": 1.0,
+        "var_r": 3257461504.0,
+        "moran_i": 0.2767,
+        "bias_db": 0.014,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 26.9
+      },
+      "mountain": {
+        "enl": 5.3,
+        "epi": 1.0,
+        "var_r": 0.0002,
+        "moran_i": 0.2672,
+        "bias_db": 0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.1
+      },
+      "desert": {
+        "enl": 6.79,
+        "epi": 1.0,
+        "var_r": 1261.5842,
+        "moran_i": 0.0093,
+        "bias_db": -0.059,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 41.1
+      },
+      "water": {
+        "enl": 8.3,
+        "epi": 1.001,
+        "var_r": 1812.8574,
+        "moran_i": -0.0,
+        "bias_db": -0.066,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.4
+      }
+    },
+    "name": "ResNet-Vitale-17L-64C",
+    "train_time": 46.4,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_vitale_17l_64c.pth"
+  },
+  {
+    "params": 852033,
+    "mean_enl": 41.46,
+    "mean_epi": 0.997,
+    "mean_var_r": 3591313089.7336,
+    "mean_moran_i": 0.2314,
+    "mean_abs_bias": 0.207,
+    "mean_psnr_gt": 39.49,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 43.66,
+        "epi": 1.0,
+        "var_r": 0.0002,
+        "moran_i": 0.3412,
+        "bias_db": -0.078,
+        "psnr": 45.43,
+        "ssim": 0.997,
+        "latency_ms": 61.0
+      },
+      "rome": {
+        "enl": 17.01,
+        "epi": 1.0,
+        "var_r": 0.0002,
+        "moran_i": 0.4367,
+        "bias_db": -0.022,
+        "psnr": 34.42,
+        "ssim": 0.972,
+        "latency_ms": 60.9
+      },
+      "serre_poncon": {
+        "enl": 243.9,
+        "epi": 1.0,
+        "var_r": 0.004,
+        "moran_i": 0.4868,
+        "bias_db": -0.071,
+        "psnr": 38.61,
+        "ssim": 0.998,
+        "latency_ms": 61.0
+      },
+      "forest": {
+        "enl": 7.62,
+        "epi": 1.0,
+        "var_r": 0.0002,
+        "moran_i": 0.2336,
+        "bias_db": -0.084,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 39.1
+      },
+      "city": {
+        "enl": 1.37,
+        "epi": 0.997,
+        "var_r": 28730337280.0,
+        "moran_i": 0.1605,
+        "bias_db": -0.057,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 39.1
+      },
+      "mountain": {
+        "enl": 5.13,
+        "epi": 1.0,
+        "var_r": 1468.502,
+        "moran_i": 0.0315,
+        "bias_db": -0.007,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 39.1
+      },
+      "desert": {
+        "enl": 6.17,
+        "epi": 0.977,
+        "var_r": 162160.2812,
+        "moran_i": 0.1309,
+        "bias_db": -0.63,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 59.4
+      },
+      "water": {
+        "enl": 6.82,
+        "epi": 1.0,
+        "var_r": 3809.0811,
+        "moran_i": 0.0302,
+        "bias_db": -0.707,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 38.9
+      }
+    },
+    "name": "ResNet-Deep-25L-64C",
+    "train_time": 68.2,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_deep_25l_64c.pth"
+  },
+  {
+    "params": 1147969,
+    "mean_enl": 69.96,
+    "mean_epi": NaN,
+    "mean_var_r": NaN,
+    "mean_moran_i": NaN,
+    "mean_abs_bias": NaN,
+    "mean_psnr_gt": 37.7,
+    "mean_ssim_gt": 0.968,
+    "terrains": {
+      "benevento": {
+        "enl": 51.89,
+        "epi": 1.0,
+        "var_r": 0.0005,
+        "moran_i": 0.4883,
+        "bias_db": 0.077,
+        "psnr": 44.46,
+        "ssim": 0.997,
+        "latency_ms": 79.9
+      },
+      "rome": {
+        "enl": 19.42,
+        "epi": 1.001,
+        "var_r": 263127536.0,
+        "moran_i": 0.3398,
+        "bias_db": 0.001,
+        "psnr": 29.18,
+        "ssim": 0.909,
+        "latency_ms": 80.2
+      },
+      "serre_poncon": {
+        "enl": 451.98,
+        "epi": 1.0,
+        "var_r": 0.003,
+        "moran_i": 0.4909,
+        "bias_db": 0.068,
+        "psnr": 39.45,
+        "ssim": 0.998,
+        "latency_ms": 76.7
+      },
+      "forest": {
+        "enl": 8.21,
+        "epi": 1.0,
+        "var_r": 0.0003,
+        "moran_i": 0.3965,
+        "bias_db": 0.066,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.1
+      },
+      "city": {
+        "enl": 1.5,
+        "epi": NaN,
+        "var_r": NaN,
+        "moran_i": NaN,
+        "bias_db": NaN,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 50.7
+      },
+      "mountain": {
+        "enl": 6.62,
+        "epi": 1.0,
+        "var_r": 0.0044,
+        "moran_i": 0.4366,
+        "bias_db": 0.015,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.0
+      },
+      "desert": {
+        "enl": 8.18,
+        "epi": 1.0,
+        "var_r": 165.4906,
+        "moran_i": 0.0533,
+        "bias_db": 0.733,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 279.1
+      },
+      "water": {
+        "enl": 11.86,
+        "epi": 1.0,
+        "var_r": 560.3038,
+        "moran_i": 0.0001,
+        "bias_db": 0.681,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.4
+      }
+    },
+    "name": "ResNet-ExtremeDeep-33L-64C",
+    "train_time": 89.5,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_extremedeep_33l_64c.pth"
+  },
+  {
+    "params": 2218113,
+    "mean_enl": 47.72,
+    "mean_epi": 1.0,
+    "mean_var_r": 654368885.4378,
+    "mean_moran_i": 0.2036,
+    "mean_abs_bias": 0.094,
+    "mean_psnr_gt": 41.49,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 45.37,
+        "epi": 1.0,
+        "var_r": 0.0001,
+        "moran_i": 0.243,
+        "bias_db": -0.042,
+        "psnr": 46.87,
+        "ssim": 0.998,
+        "latency_ms": 91.8
+      },
+      "rome": {
+        "enl": 17.4,
+        "epi": 1.0,
+        "var_r": 0.0001,
+        "moran_i": 0.2866,
+        "bias_db": -0.01,
+        "psnr": 34.43,
+        "ssim": 0.972,
+        "latency_ms": 87.2
+      },
+      "serre_poncon": {
+        "enl": 290.59,
+        "epi": 1.001,
+        "var_r": 0.0007,
+        "moran_i": 0.4705,
+        "bias_db": -0.037,
+        "psnr": 43.16,
+        "ssim": 0.999,
+        "latency_ms": 158.9
+      },
+      "forest": {
+        "enl": 7.74,
+        "epi": 1.0,
+        "var_r": 0.0001,
+        "moran_i": 0.1908,
+        "bias_db": -0.046,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 155.2
+      },
+      "city": {
+        "enl": 1.39,
+        "epi": 0.998,
+        "var_r": 5234935808.0,
+        "moran_i": 0.26,
+        "bias_db": -0.018,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 56.1
+      },
+      "mountain": {
+        "enl": 5.12,
+        "epi": 1.0,
+        "var_r": 791.4498,
+        "moran_i": 0.0,
+        "bias_db": -0.005,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 56.4
+      },
+      "desert": {
+        "enl": 6.53,
+        "epi": 0.997,
+        "var_r": 13147.0088,
+        "moran_i": 0.0903,
+        "bias_db": -0.285,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 87.0
+      },
+      "water": {
+        "enl": 7.65,
+        "epi": 1.001,
+        "var_r": 1337.0426,
+        "moran_i": 0.0877,
+        "bias_db": -0.309,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 56.6
+      }
+    },
+    "name": "ResNet-Wide-17L-128C",
+    "train_time": 105.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_wide_17l_128c.pth"
+  },
+  {
+    "params": 554177,
+    "mean_enl": 97.69,
+    "mean_epi": 0.282,
+    "mean_var_r": 1025516.7306,
+    "mean_moran_i": 0.0928,
+    "mean_abs_bias": 0.058,
+    "mean_psnr_gt": 34.13,
+    "mean_ssim_gt": 0.964,
+    "terrains": {
+      "benevento": {
+        "enl": 55.9,
+        "epi": 0.456,
+        "var_r": 697192.0,
+        "moran_i": 0.0909,
+        "bias_db": -0.046,
+        "psnr": 35.18,
+        "ssim": 0.964,
+        "latency_ms": 36.5
+      },
+      "rome": {
+        "enl": 20.74,
+        "epi": 0.341,
+        "var_r": 1590299.375,
+        "moran_i": 0.0117,
+        "bias_db": -0.037,
+        "psnr": 30.76,
+        "ssim": 0.933,
+        "latency_ms": 35.5
+      },
+      "serre_poncon": {
+        "enl": 552.18,
+        "epi": 0.584,
+        "var_r": 0.0086,
+        "moran_i": 0.2707,
+        "bias_db": -0.041,
+        "psnr": 36.46,
+        "ssim": 0.994,
+        "latency_ms": 35.4
+      },
+      "forest": {
+        "enl": 42.81,
+        "epi": 0.152,
+        "var_r": 0.082,
+        "moran_i": 0.0866,
+        "bias_db": -0.033,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 22.0
+      },
+      "city": {
+        "enl": 4.9,
+        "epi": 0.217,
+        "var_r": 5916636.0,
+        "moran_i": 0.0683,
+        "bias_db": -0.02,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 22.5
+      },
+      "mountain": {
+        "enl": 17.81,
+        "epi": 0.187,
+        "var_r": 0.1078,
+        "moran_i": 0.1446,
+        "bias_db": -0.021,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 22.5
+      },
+      "desert": {
+        "enl": 32.08,
+        "epi": 0.17,
+        "var_r": 6.1803,
+        "moran_i": 0.018,
+        "bias_db": -0.134,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 34.2
+      },
+      "water": {
+        "enl": 55.08,
+        "epi": 0.147,
+        "var_r": 0.0914,
+        "moran_i": 0.0516,
+        "bias_db": -0.136,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 22.7
+      }
+    },
+    "name": "ResNet-NoNorm-17L",
+    "train_time": 38.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_nonorm_17l.pth"
+  },
+  {
+    "params": 556097,
+    "mean_enl": 58.37,
+    "mean_epi": 1.0,
+    "mean_var_r": 750885347.7421,
+    "mean_moran_i": 0.2813,
+    "mean_abs_bias": 0.088,
+    "mean_psnr_gt": 41.59,
+    "mean_ssim_gt": 0.981,
+    "terrains": {
+      "benevento": {
+        "enl": 47.94,
+        "epi": 0.999,
+        "var_r": 0.0,
+        "moran_i": 0.38,
+        "bias_db": 0.039,
+        "psnr": 46.9,
+        "ssim": 0.998,
+        "latency_ms": 44.1
+      },
+      "rome": {
+        "enl": 18.24,
+        "epi": 0.999,
+        "var_r": 67229040.0,
+        "moran_i": 0.4273,
+        "bias_db": 0.019,
+        "psnr": 31.62,
+        "ssim": 0.946,
+        "latency_ms": 42.8
+      },
+      "serre_poncon": {
+        "enl": 369.12,
+        "epi": 0.998,
+        "var_r": 0.0003,
+        "moran_i": 0.4735,
+        "bias_db": 0.036,
+        "psnr": 46.25,
+        "ssim": 0.999,
+        "latency_ms": 41.1
+      },
+      "forest": {
+        "enl": 8.04,
+        "epi": 1.0,
+        "var_r": 0.0001,
+        "moran_i": 0.2677,
+        "bias_db": 0.041,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.2
+      },
+      "city": {
+        "enl": 1.46,
+        "epi": 1.005,
+        "var_r": 5939851264.0,
+        "moran_i": 0.3115,
+        "bias_db": 0.075,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.0
+      },
+      "mountain": {
+        "enl": 5.77,
+        "epi": 0.999,
+        "var_r": 0.0008,
+        "moran_i": 0.3867,
+        "bias_db": 0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 28.3
+      },
+      "desert": {
+        "enl": 7.16,
+        "epi": 1.0,
+        "var_r": 1044.557,
+        "moran_i": 0.0036,
+        "bias_db": 0.244,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 41.6
+      },
+      "water": {
+        "enl": 9.19,
+        "epi": 1.0,
+        "var_r": 1433.3785,
+        "moran_i": 0.0,
+        "bias_db": 0.238,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 26.9
+      }
+    },
+    "name": "ResNet-SiLU-17L",
+    "train_time": 47.9,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_silu_17l.pth"
+  },
+  {
+    "params": 556097,
+    "mean_enl": 78.65,
+    "mean_epi": 0.731,
+    "mean_var_r": 408963.7047,
+    "mean_moran_i": 0.2481,
+    "mean_abs_bias": 0.23,
+    "mean_psnr_gt": 33.33,
+    "mean_ssim_gt": 0.961,
+    "terrains": {
+      "benevento": {
+        "enl": 46.48,
+        "epi": 0.776,
+        "var_r": 0.0045,
+        "moran_i": 0.2202,
+        "bias_db": -0.081,
+        "psnr": 41.38,
+        "ssim": 0.991,
+        "latency_ms": 44.2
+      },
+      "rome": {
+        "enl": 19.21,
+        "epi": 0.584,
+        "var_r": 0.0358,
+        "moran_i": 0.1807,
+        "bias_db": -0.383,
+        "psnr": 32.78,
+        "ssim": 0.956,
+        "latency_ms": 42.3
+      },
+      "serre_poncon": {
+        "enl": 494.05,
+        "epi": 1.034,
+        "var_r": 1134679.375,
+        "moran_i": 0.3102,
+        "bias_db": -0.084,
+        "psnr": 25.83,
+        "ssim": 0.935,
+        "latency_ms": 42.6
+      },
+      "forest": {
+        "enl": 13.5,
+        "epi": 0.915,
+        "var_r": 0.006,
+        "moran_i": 0.1326,
+        "bias_db": -0.052,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 28.4
+      },
+      "city": {
+        "enl": 3.56,
+        "epi": 0.48,
+        "var_r": 0.1536,
+        "moran_i": 0.1598,
+        "bias_db": -1.073,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.1
+      },
+      "mountain": {
+        "enl": 10.79,
+        "epi": 0.632,
+        "var_r": 1254744.375,
+        "moran_i": 0.2674,
+        "bias_db": -0.134,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 28.0
+      },
+      "desert": {
+        "enl": 15.64,
+        "epi": 0.793,
+        "var_r": 615793.5625,
+        "moran_i": 0.314,
+        "bias_db": 0.019,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 42.4
+      },
+      "water": {
+        "enl": 25.98,
+        "epi": 0.632,
+        "var_r": 266492.125,
+        "moran_i": 0.3996,
+        "bias_db": -0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 28.1
+      }
+    },
+    "name": "ResNet-LogResidual-17L",
+    "train_time": 46.8,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_resnet_logresidual_17l.pth"
+  },
+  {
+    "params": 23345,
+    "mean_enl": 74.93,
+    "mean_epi": 0.403,
+    "mean_var_r": 0.1047,
+    "mean_moran_i": 0.133,
+    "mean_abs_bias": 0.058,
+    "mean_psnr_gt": 41.3,
+    "mean_ssim_gt": 0.988,
+    "terrains": {
+      "benevento": {
+        "enl": 46.4,
+        "epi": 0.803,
+        "var_r": 0.001,
+        "moran_i": 0.1243,
+        "bias_db": -0.055,
+        "psnr": 44.74,
+        "ssim": 0.996,
+        "latency_ms": 15.8
+      },
+      "rome": {
+        "enl": 17.73,
+        "epi": 0.67,
+        "var_r": 0.0087,
+        "moran_i": 0.1482,
+        "bias_db": -0.16,
+        "psnr": 34.12,
+        "ssim": 0.969,
+        "latency_ms": 10.1
+      },
+      "serre_poncon": {
+        "enl": 360.14,
+        "epi": 0.928,
+        "var_r": 0.0007,
+        "moran_i": 0.1938,
+        "bias_db": -0.028,
+        "psnr": 45.04,
+        "ssim": 0.999,
+        "latency_ms": 10.5
+      },
+      "forest": {
+        "enl": 48.64,
+        "epi": 0.127,
+        "var_r": 0.0855,
+        "moran_i": 0.0947,
+        "bias_db": -0.01,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 6.8
+      },
+      "city": {
+        "enl": 4.75,
+        "epi": 0.23,
+        "var_r": 0.247,
+        "moran_i": 0.1735,
+        "bias_db": -0.117,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 6.4
+      },
+      "mountain": {
+        "enl": 18.99,
+        "epi": 0.216,
+        "var_r": 0.099,
+        "moran_i": 0.1421,
+        "bias_db": -0.045,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 7.0
+      },
+      "desert": {
+        "enl": 36.91,
+        "epi": 0.142,
+        "var_r": 0.3054,
+        "moran_i": 0.119,
+        "bias_db": -0.04,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 10.1
+      },
+      "water": {
+        "enl": 65.88,
+        "epi": 0.106,
+        "var_r": 0.09,
+        "moran_i": 0.0683,
+        "bias_db": -0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 6.7
+      }
+    },
+    "name": "MERLIN-Nano-16C-4L",
+    "train_time": 10.1,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_nano_16c_4l.pth"
+  },
+  {
+    "params": 109417,
+    "mean_enl": 73.82,
+    "mean_epi": 0.424,
+    "mean_var_r": 0.1071,
+    "mean_moran_i": 0.1472,
+    "mean_abs_bias": 0.043,
+    "mean_psnr_gt": 42.94,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 47.67,
+        "epi": 0.878,
+        "var_r": 0.0003,
+        "moran_i": 0.1657,
+        "bias_db": -0.034,
+        "psnr": 46.82,
+        "ssim": 0.998,
+        "latency_ms": 30.8
+      },
+      "rome": {
+        "enl": 18.12,
+        "epi": 0.79,
+        "var_r": 0.0032,
+        "moran_i": 0.1577,
+        "bias_db": -0.2,
+        "psnr": 34.53,
+        "ssim": 0.971,
+        "latency_ms": 19.1
+      },
+      "serre_poncon": {
+        "enl": 347.39,
+        "epi": 0.962,
+        "var_r": 0.0002,
+        "moran_i": 0.2535,
+        "bias_db": 0.016,
+        "psnr": 47.48,
+        "ssim": 1.0,
+        "latency_ms": 19.4
+      },
+      "forest": {
+        "enl": 48.8,
+        "epi": 0.121,
+        "var_r": 0.0886,
+        "moran_i": 0.0958,
+        "bias_db": 0.005,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 12.6
+      },
+      "city": {
+        "enl": 4.86,
+        "epi": 0.207,
+        "var_r": 0.2615,
+        "moran_i": 0.1713,
+        "bias_db": -0.063,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.6
+      },
+      "mountain": {
+        "enl": 19.07,
+        "epi": 0.184,
+        "var_r": 0.1061,
+        "moran_i": 0.1455,
+        "bias_db": 0.008,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.3
+      },
+      "desert": {
+        "enl": 37.09,
+        "epi": 0.14,
+        "var_r": 0.3074,
+        "moran_i": 0.1183,
+        "bias_db": -0.011,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 17.2
+      },
+      "water": {
+        "enl": 67.56,
+        "epi": 0.107,
+        "var_r": 0.0891,
+        "moran_i": 0.0695,
+        "bias_db": 0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 11.7
+      }
+    },
+    "name": "MERLIN-Small-24C-6L",
+    "train_time": 17.5,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_small_24c_6l.pth"
+  },
+  {
+    "params": 245773,
+    "mean_enl": 75.6,
+    "mean_epi": 0.422,
+    "mean_var_r": 0.107,
+    "mean_moran_i": 0.1434,
+    "mean_abs_bias": 0.045,
+    "mean_psnr_gt": 42.57,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 47.19,
+        "epi": 0.903,
+        "var_r": 0.0003,
+        "moran_i": 0.1545,
+        "bias_db": -0.037,
+        "psnr": 46.67,
+        "ssim": 0.997,
+        "latency_ms": 41.0
+      },
+      "rome": {
+        "enl": 18.01,
+        "epi": 0.758,
+        "var_r": 0.0049,
+        "moran_i": 0.1673,
+        "bias_db": -0.193,
+        "psnr": 34.37,
+        "ssim": 0.97,
+        "latency_ms": 33.8
+      },
+      "serre_poncon": {
+        "enl": 364.33,
+        "epi": 0.961,
+        "var_r": 0.0003,
+        "moran_i": 0.2242,
+        "bias_db": -0.001,
+        "psnr": 46.68,
+        "ssim": 0.999,
+        "latency_ms": 34.6
+      },
+      "forest": {
+        "enl": 49.05,
+        "epi": 0.12,
+        "var_r": 0.088,
+        "moran_i": 0.0957,
+        "bias_db": -0.01,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 54.6
+      },
+      "city": {
+        "enl": 5.03,
+        "epi": 0.206,
+        "var_r": 0.2608,
+        "moran_i": 0.1727,
+        "bias_db": -0.056,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 94.6
+      },
+      "mountain": {
+        "enl": 18.71,
+        "epi": 0.188,
+        "var_r": 0.1053,
+        "moran_i": 0.1457,
+        "bias_db": -0.012,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.3
+      },
+      "desert": {
+        "enl": 36.17,
+        "epi": 0.137,
+        "var_r": 0.306,
+        "moran_i": 0.1183,
+        "bias_db": -0.04,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 29.6
+      },
+      "water": {
+        "enl": 66.34,
+        "epi": 0.102,
+        "var_r": 0.0904,
+        "moran_i": 0.0692,
+        "bias_db": -0.014,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 20.1
+      }
+    },
+    "name": "MERLIN-Medium-36C-6L",
+    "train_time": 30.8,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_medium_36c_6l.pth"
+  },
+  {
+    "params": 775617,
+    "mean_enl": 75.04,
+    "mean_epi": 0.394,
+    "mean_var_r": 0.1045,
+    "mean_moran_i": 0.1275,
+    "mean_abs_bias": 0.035,
+    "mean_psnr_gt": 41.21,
+    "mean_ssim_gt": 0.987,
+    "terrains": {
+      "benevento": {
+        "enl": 46.45,
+        "epi": 0.805,
+        "var_r": 0.001,
+        "moran_i": 0.1151,
+        "bias_db": -0.006,
+        "psnr": 44.55,
+        "ssim": 0.996,
+        "latency_ms": 55.0
+      },
+      "rome": {
+        "enl": 17.94,
+        "epi": 0.642,
+        "var_r": 0.0096,
+        "moran_i": 0.1479,
+        "bias_db": -0.125,
+        "psnr": 33.89,
+        "ssim": 0.967,
+        "latency_ms": 43.0
+      },
+      "serre_poncon": {
+        "enl": 364.2,
+        "epi": 0.932,
+        "var_r": 0.0007,
+        "moran_i": 0.1687,
+        "bias_db": 0.027,
+        "psnr": 45.18,
+        "ssim": 0.999,
+        "latency_ms": 46.7
+      },
+      "forest": {
+        "enl": 47.09,
+        "epi": 0.124,
+        "var_r": 0.0848,
+        "moran_i": 0.0942,
+        "bias_db": -0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 28.5
+      },
+      "city": {
+        "enl": 4.93,
+        "epi": 0.213,
+        "var_r": 0.2519,
+        "moran_i": 0.1683,
+        "bias_db": -0.068,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 60.4
+      },
+      "mountain": {
+        "enl": 18.78,
+        "epi": 0.192,
+        "var_r": 0.1018,
+        "moran_i": 0.1414,
+        "bias_db": -0.013,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 112.5
+      },
+      "desert": {
+        "enl": 36.03,
+        "epi": 0.14,
+        "var_r": 0.2973,
+        "moran_i": 0.1167,
+        "bias_db": -0.028,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 87.4
+      },
+      "water": {
+        "enl": 64.93,
+        "epi": 0.105,
+        "var_r": 0.0887,
+        "moran_i": 0.0681,
+        "bias_db": -0.004,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.8
+      }
+    },
+    "name": "MERLIN-Wide-64C-6L",
+    "train_time": 48.9,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_wide_64c_6l.pth"
+  },
+  {
+    "params": 1141969,
+    "mean_enl": 74.5,
+    "mean_epi": 0.432,
+    "mean_var_r": 0.1082,
+    "mean_moran_i": 0.1576,
+    "mean_abs_bias": 0.056,
+    "mean_psnr_gt": 42.96,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 47.11,
+        "epi": 0.934,
+        "var_r": 0.0001,
+        "moran_i": 0.2102,
+        "bias_db": -0.053,
+        "psnr": 47.24,
+        "ssim": 0.998,
+        "latency_ms": 149.3
+      },
+      "rome": {
+        "enl": 17.95,
+        "epi": 0.844,
+        "var_r": 0.0013,
+        "moran_i": 0.1671,
+        "bias_db": -0.201,
+        "psnr": 34.6,
+        "ssim": 0.972,
+        "latency_ms": 182.5
+      },
+      "serre_poncon": {
+        "enl": 349.34,
+        "epi": 0.954,
+        "var_r": 0.0002,
+        "moran_i": 0.2834,
+        "bias_db": -0.022,
+        "psnr": 47.04,
+        "ssim": 0.999,
+        "latency_ms": 78.4
+      },
+      "forest": {
+        "enl": 49.66,
+        "epi": 0.116,
+        "var_r": 0.0883,
+        "moran_i": 0.0949,
+        "bias_db": -0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.6
+      },
+      "city": {
+        "enl": 4.97,
+        "epi": 0.198,
+        "var_r": 0.2666,
+        "moran_i": 0.1711,
+        "bias_db": -0.114,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.9
+      },
+      "mountain": {
+        "enl": 19.36,
+        "epi": 0.176,
+        "var_r": 0.1102,
+        "moran_i": 0.1471,
+        "bias_db": -0.011,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.9
+      },
+      "desert": {
+        "enl": 37.32,
+        "epi": 0.133,
+        "var_r": 0.3086,
+        "moran_i": 0.119,
+        "bias_db": -0.033,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 78.5
+      },
+      "water": {
+        "enl": 70.26,
+        "epi": 0.1,
+        "var_r": 0.0905,
+        "moran_i": 0.0679,
+        "bias_db": -0.003,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 51.5
+      }
+    },
+    "name": "MERLIN-ExtremeDeep-48C-10L",
+    "train_time": 76.3,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_extremedeep_48c_10l.pth"
+  },
+  {
+    "params": 245773,
+    "mean_enl": 75.28,
+    "mean_epi": 0.421,
+    "mean_var_r": 0.1077,
+    "mean_moran_i": 0.1059,
+    "mean_abs_bias": 0.039,
+    "mean_psnr_gt": 42.86,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 47.02,
+        "epi": 0.902,
+        "var_r": 0.0002,
+        "moran_i": 0.0362,
+        "bias_db": -0.041,
+        "psnr": 46.98,
+        "ssim": 0.998,
+        "latency_ms": 37.7
+      },
+      "rome": {
+        "enl": 17.91,
+        "epi": 0.775,
+        "var_r": 0.0035,
+        "moran_i": 0.1018,
+        "bias_db": -0.176,
+        "psnr": 34.48,
+        "ssim": 0.971,
+        "latency_ms": 31.5
+      },
+      "serre_poncon": {
+        "enl": 358.86,
+        "epi": 0.958,
+        "var_r": 0.0002,
+        "moran_i": 0.1146,
+        "bias_db": -0.0,
+        "psnr": 47.11,
+        "ssim": 0.999,
+        "latency_ms": 30.7
+      },
+      "forest": {
+        "enl": 50.03,
+        "epi": 0.117,
+        "var_r": 0.0888,
+        "moran_i": 0.0954,
+        "bias_db": -0.013,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.8
+      },
+      "city": {
+        "enl": 4.86,
+        "epi": 0.2,
+        "var_r": 0.2629,
+        "moran_i": 0.1703,
+        "bias_db": -0.038,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.5
+      },
+      "mountain": {
+        "enl": 19.14,
+        "epi": 0.176,
+        "var_r": 0.108,
+        "moran_i": 0.1451,
+        "bias_db": 0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.5
+      },
+      "desert": {
+        "enl": 36.67,
+        "epi": 0.137,
+        "var_r": 0.3075,
+        "moran_i": 0.1171,
+        "bias_db": -0.021,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 29.6
+      },
+      "water": {
+        "enl": 67.76,
+        "epi": 0.1,
+        "var_r": 0.0908,
+        "moran_i": 0.067,
+        "bias_db": -0.018,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.4
+      }
+    },
+    "name": "MERLIN-ExpDilation-36C",
+    "train_time": 31.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_expdilation_36c.pth"
+  },
+  {
+    "params": 245773,
+    "mean_enl": 76.86,
+    "mean_epi": 0.385,
+    "mean_var_r": 0.1086,
+    "mean_moran_i": 0.1343,
+    "mean_abs_bias": 0.031,
+    "mean_psnr_gt": 40.79,
+    "mean_ssim_gt": 0.987,
+    "terrains": {
+      "benevento": {
+        "enl": 46.72,
+        "epi": 0.787,
+        "var_r": 0.0012,
+        "moran_i": 0.1506,
+        "bias_db": -0.023,
+        "psnr": 43.89,
+        "ssim": 0.995,
+        "latency_ms": 44.4
+      },
+      "rome": {
+        "enl": 17.98,
+        "epi": 0.633,
+        "var_r": 0.0102,
+        "moran_i": 0.1617,
+        "bias_db": -0.137,
+        "psnr": 33.85,
+        "ssim": 0.967,
+        "latency_ms": 33.7
+      },
+      "serre_poncon": {
+        "enl": 370.35,
+        "epi": 0.94,
+        "var_r": 0.0008,
+        "moran_i": 0.1702,
+        "bias_db": 0.026,
+        "psnr": 44.63,
+        "ssim": 0.999,
+        "latency_ms": 30.0
+      },
+      "forest": {
+        "enl": 49.28,
+        "epi": 0.114,
+        "var_r": 0.089,
+        "moran_i": 0.0937,
+        "bias_db": -0.002,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.7
+      },
+      "city": {
+        "enl": 4.88,
+        "epi": 0.196,
+        "var_r": 0.2625,
+        "moran_i": 0.1712,
+        "bias_db": -0.037,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.4
+      },
+      "mountain": {
+        "enl": 19.02,
+        "epi": 0.178,
+        "var_r": 0.1072,
+        "moran_i": 0.1438,
+        "bias_db": -0.01,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.6
+      },
+      "desert": {
+        "enl": 36.61,
+        "epi": 0.134,
+        "var_r": 0.3073,
+        "moran_i": 0.1164,
+        "bias_db": -0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 29.9
+      },
+      "water": {
+        "enl": 70.04,
+        "epi": 0.098,
+        "var_r": 0.091,
+        "moran_i": 0.0672,
+        "bias_db": -0.002,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.9
+      }
+    },
+    "name": "MERLIN-DenseUnit-36C",
+    "train_time": 31.1,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_denseunit_36c.pth"
+  },
+  {
+    "params": 245773,
+    "mean_enl": 53.69,
+    "mean_epi": 1.001,
+    "mean_var_r": 0.0,
+    "mean_moran_i": 0.0609,
+    "mean_abs_bias": 0.001,
+    "mean_psnr_gt": 43.17,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 46.47,
+        "epi": 1.001,
+        "var_r": 0.0,
+        "moran_i": 0.0801,
+        "bias_db": -0.0,
+        "psnr": 47.6,
+        "ssim": 0.998,
+        "latency_ms": 32.8
+      },
+      "rome": {
+        "enl": 17.82,
+        "epi": 1.002,
+        "var_r": 0.0,
+        "moran_i": 0.0601,
+        "bias_db": -0.001,
+        "psnr": 34.43,
+        "ssim": 0.972,
+        "latency_ms": 31.4
+      },
+      "serre_poncon": {
+        "enl": 335.26,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.2248,
+        "bias_db": -0.0,
+        "psnr": 47.49,
+        "ssim": 1.0,
+        "latency_ms": 31.0
+      },
+      "forest": {
+        "enl": 7.89,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.0002,
+        "bias_db": -0.0,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.5
+      },
+      "city": {
+        "enl": 1.43,
+        "epi": 1.002,
+        "var_r": 0.0,
+        "moran_i": 0.0278,
+        "bias_db": 0.003,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 19.4
+      },
+      "mountain": {
+        "enl": 5.39,
+        "epi": 1.002,
+        "var_r": 0.0,
+        "moran_i": 0.0959,
+        "bias_db": 0.0,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 20.0
+      },
+      "desert": {
+        "enl": 6.85,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": -0.0033,
+        "bias_db": -0.0,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 29.4
+      },
+      "water": {
+        "enl": 8.4,
+        "epi": 1.0,
+        "var_r": 0.0,
+        "moran_i": 0.0015,
+        "bias_db": 0.001,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 20.1
+      }
+    },
+    "name": "MERLIN-Loss-GammaMLE",
+    "train_time": 31.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_loss_gammamle.pth"
+  },
+  {
+    "params": 245773,
+    "mean_enl": 75.5,
+    "mean_epi": 0.422,
+    "mean_var_r": 0.1071,
+    "mean_moran_i": 0.1466,
+    "mean_abs_bias": 0.036,
+    "mean_psnr_gt": 42.59,
+    "mean_ssim_gt": 0.989,
+    "terrains": {
+      "benevento": {
+        "enl": 46.94,
+        "epi": 0.865,
+        "var_r": 0.0003,
+        "moran_i": 0.1615,
+        "bias_db": -0.038,
+        "psnr": 46.67,
+        "ssim": 0.997,
+        "latency_ms": 33.5
+      },
+      "rome": {
+        "enl": 17.84,
+        "epi": 0.78,
+        "var_r": 0.0026,
+        "moran_i": 0.1498,
+        "bias_db": -0.166,
+        "psnr": 34.65,
+        "ssim": 0.972,
+        "latency_ms": 30.9
+      },
+      "serre_poncon": {
+        "enl": 358.56,
+        "epi": 0.923,
+        "var_r": 0.0004,
+        "moran_i": 0.2466,
+        "bias_db": -0.017,
+        "psnr": 46.44,
+        "ssim": 0.999,
+        "latency_ms": 31.8
+      },
+      "forest": {
+        "enl": 51.92,
+        "epi": 0.126,
+        "var_r": 0.0881,
+        "moran_i": 0.1008,
+        "bias_db": 0.01,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 21.5
+      },
+      "city": {
+        "enl": 5.26,
+        "epi": 0.225,
+        "var_r": 0.2609,
+        "moran_i": 0.176,
+        "bias_db": 0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 20.5
+      },
+      "mountain": {
+        "enl": 19.09,
+        "epi": 0.207,
+        "var_r": 0.1056,
+        "moran_i": 0.1491,
+        "bias_db": 0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 20.7
+      },
+      "desert": {
+        "enl": 36.45,
+        "epi": 0.141,
+        "var_r": 0.3095,
+        "moran_i": 0.1202,
+        "bias_db": -0.019,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 94.2
+      },
+      "water": {
+        "enl": 67.91,
+        "epi": 0.109,
+        "var_r": 0.089,
+        "moran_i": 0.0688,
+        "bias_db": 0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 86.7
+      }
+    },
+    "name": "MERLIN-Loss-LogCosh",
+    "train_time": 31.0,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_merlin_loss_logcosh.pth"
+  },
+  {
+    "params": 9765,
+    "mean_enl": 74.59,
+    "mean_epi": 0.436,
+    "mean_var_r": 0.1072,
+    "mean_moran_i": 0.1497,
+    "mean_abs_bias": 0.055,
+    "mean_psnr_gt": 43.07,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 47.39,
+        "epi": 0.943,
+        "var_r": 0.0001,
+        "moran_i": 0.2237,
+        "bias_db": -0.012,
+        "psnr": 47.24,
+        "ssim": 0.998,
+        "latency_ms": 32.3
+      },
+      "rome": {
+        "enl": 18.28,
+        "epi": 0.825,
+        "var_r": 0.0009,
+        "moran_i": 0.146,
+        "bias_db": -0.193,
+        "psnr": 34.59,
+        "ssim": 0.972,
+        "latency_ms": 28.8
+      },
+      "serre_poncon": {
+        "enl": 349.29,
+        "epi": 0.977,
+        "var_r": 0.0001,
+        "moran_i": 0.2387,
+        "bias_db": 0.047,
+        "psnr": 47.39,
+        "ssim": 1.0,
+        "latency_ms": 28.1
+      },
+      "forest": {
+        "enl": 49.41,
+        "epi": 0.115,
+        "var_r": 0.088,
+        "moran_i": 0.0935,
+        "bias_db": -0.012,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 68.8
+      },
+      "city": {
+        "enl": 4.91,
+        "epi": 0.224,
+        "var_r": 0.2634,
+        "moran_i": 0.1671,
+        "bias_db": -0.142,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 91.5
+      },
+      "mountain": {
+        "enl": 19.46,
+        "epi": 0.178,
+        "var_r": 0.1076,
+        "moran_i": 0.1427,
+        "bias_db": 0.005,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 31.2
+      },
+      "desert": {
+        "enl": 39.81,
+        "epi": 0.132,
+        "var_r": 0.3067,
+        "moran_i": 0.1171,
+        "bias_db": -0.024,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 27.8
+      },
+      "water": {
+        "enl": 68.14,
+        "epi": 0.096,
+        "var_r": 0.0906,
+        "moran_i": 0.0684,
+        "bias_db": -0.007,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 18.0
+      }
+    },
+    "name": "RestormerV2-Nano",
+    "train_time": 24.6,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_restormerv2_nano.pth"
+  },
+  {
+    "params": 59153,
+    "mean_enl": 75.44,
+    "mean_epi": 0.434,
+    "mean_var_r": 0.1075,
+    "mean_moran_i": 0.1393,
+    "mean_abs_bias": 0.038,
+    "mean_psnr_gt": 43.25,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 46.57,
+        "epi": 0.938,
+        "var_r": 0.0001,
+        "moran_i": 0.2041,
+        "bias_db": -0.023,
+        "psnr": 47.31,
+        "ssim": 0.998,
+        "latency_ms": 69.0
+      },
+      "rome": {
+        "enl": 18.02,
+        "epi": 0.829,
+        "var_r": 0.0008,
+        "moran_i": 0.1077,
+        "bias_db": -0.201,
+        "psnr": 34.62,
+        "ssim": 0.972,
+        "latency_ms": 64.5
+      },
+      "serre_poncon": {
+        "enl": 357.46,
+        "epi": 0.994,
+        "var_r": 0.0001,
+        "moran_i": 0.2022,
+        "bias_db": 0.039,
+        "psnr": 47.83,
+        "ssim": 1.0,
+        "latency_ms": 62.8
+      },
+      "forest": {
+        "enl": 50.19,
+        "epi": 0.113,
+        "var_r": 0.0875,
+        "moran_i": 0.0955,
+        "bias_db": -0.001,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 42.1
+      },
+      "city": {
+        "enl": 4.88,
+        "epi": 0.202,
+        "var_r": 0.2644,
+        "moran_i": 0.1695,
+        "bias_db": -0.019,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 41.6
+      },
+      "mountain": {
+        "enl": 19.24,
+        "epi": 0.167,
+        "var_r": 0.1095,
+        "moran_i": 0.1477,
+        "bias_db": 0.008,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 42.6
+      },
+      "desert": {
+        "enl": 37.66,
+        "epi": 0.132,
+        "var_r": 0.3075,
+        "moran_i": 0.1183,
+        "bias_db": -0.008,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 195.1
+      },
+      "water": {
+        "enl": 69.48,
+        "epi": 0.096,
+        "var_r": 0.0902,
+        "moran_i": 0.0694,
+        "bias_db": 0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 41.2
+      }
+    },
+    "name": "RestormerV2-Small",
+    "train_time": 62.7,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_restormerv2_small.pth"
+  },
+  {
+    "params": 178885,
+    "mean_enl": 75.3,
+    "mean_epi": 0.436,
+    "mean_var_r": 0.1086,
+    "mean_moran_i": 0.1465,
+    "mean_abs_bias": 0.046,
+    "mean_psnr_gt": 43.2,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 46.55,
+        "epi": 0.965,
+        "var_r": 0.0001,
+        "moran_i": 0.2228,
+        "bias_db": -0.004,
+        "psnr": 47.34,
+        "ssim": 0.998,
+        "latency_ms": 124.1
+      },
+      "rome": {
+        "enl": 17.95,
+        "epi": 0.843,
+        "var_r": 0.0008,
+        "moran_i": 0.1295,
+        "bias_db": -0.194,
+        "psnr": 34.63,
+        "ssim": 0.972,
+        "latency_ms": 116.8
+      },
+      "serre_poncon": {
+        "enl": 349.45,
+        "epi": 0.988,
+        "var_r": 0.0001,
+        "moran_i": 0.2174,
+        "bias_db": 0.06,
+        "psnr": 47.63,
+        "ssim": 1.0,
+        "latency_ms": 116.8
+      },
+      "forest": {
+        "enl": 51.33,
+        "epi": 0.109,
+        "var_r": 0.0897,
+        "moran_i": 0.0963,
+        "bias_db": -0.005,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 77.6
+      },
+      "city": {
+        "enl": 4.88,
+        "epi": 0.198,
+        "var_r": 0.2676,
+        "moran_i": 0.1696,
+        "bias_db": -0.051,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 76.2
+      },
+      "mountain": {
+        "enl": 19.69,
+        "epi": 0.167,
+        "var_r": 0.1105,
+        "moran_i": 0.1474,
+        "bias_db": 0.009,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 75.8
+      },
+      "desert": {
+        "enl": 39.08,
+        "epi": 0.128,
+        "var_r": 0.3085,
+        "moran_i": 0.1188,
+        "bias_db": -0.03,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 116.6
+      },
+      "water": {
+        "enl": 73.46,
+        "epi": 0.092,
+        "var_r": 0.0918,
+        "moran_i": 0.07,
+        "bias_db": -0.012,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 275.0
+      }
+    },
+    "name": "RestormerV2-Medium",
+    "train_time": 113.5,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_restormerv2_medium.pth"
+  },
+  {
+    "params": 399681,
+    "mean_enl": 73.78,
+    "mean_epi": 0.442,
+    "mean_var_r": 0.1076,
+    "mean_moran_i": 0.1532,
+    "mean_abs_bias": 0.034,
+    "mean_psnr_gt": 43.23,
+    "mean_ssim_gt": 0.99,
+    "terrains": {
+      "benevento": {
+        "enl": 46.8,
+        "epi": 0.975,
+        "var_r": 0.0,
+        "moran_i": 0.1671,
+        "bias_db": 0.01,
+        "psnr": 47.37,
+        "ssim": 0.998,
+        "latency_ms": 190.5
+      },
+      "rome": {
+        "enl": 18.25,
+        "epi": 0.867,
+        "var_r": 0.0008,
+        "moran_i": 0.1306,
+        "bias_db": -0.16,
+        "psnr": 34.71,
+        "ssim": 0.973,
+        "latency_ms": 375.2
+      },
+      "serre_poncon": {
+        "enl": 344.94,
+        "epi": 1.002,
+        "var_r": 0.0001,
+        "moran_i": 0.3362,
+        "bias_db": 0.075,
+        "psnr": 47.61,
+        "ssim": 1.0,
+        "latency_ms": 184.5
+      },
+      "forest": {
+        "enl": 48.5,
+        "epi": 0.111,
+        "var_r": 0.0885,
+        "moran_i": 0.0929,
+        "bias_db": 0.001,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 121.8
+      },
+      "city": {
+        "enl": 4.79,
+        "epi": 0.194,
+        "var_r": 0.2665,
+        "moran_i": 0.1682,
+        "bias_db": -0.016,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 121.6
+      },
+      "mountain": {
+        "enl": 19.17,
+        "epi": 0.164,
+        "var_r": 0.1099,
+        "moran_i": 0.1467,
+        "bias_db": 0.006,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 121.7
+      },
+      "desert": {
+        "enl": 37.26,
+        "epi": 0.13,
+        "var_r": 0.3042,
+        "moran_i": 0.1162,
+        "bias_db": -0.005,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 183.3
+      },
+      "water": {
+        "enl": 70.56,
+        "epi": 0.094,
+        "var_r": 0.0906,
+        "moran_i": 0.0676,
+        "bias_db": -0.002,
+        "psnr": 0.0,
+        "ssim": 0.0,
+        "latency_ms": 157.8
+      }
+    },
+    "name": "RestormerV2-Large",
+    "train_time": 213.9,
+    "weight_file": "D:\\ПРОФ\\ВУЗ\\ВТСК\\SAR\\weights\\exp_restormerv2_large.pth"
+  }
+]

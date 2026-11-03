@@ -34,6 +34,8 @@ from train_sar_models import (
     MERLIN_ResUNet_Deep,
     MERLIN_UNet_Base,
     SAR_MERLIN_BlindSpot_Legacy,
+    SAR_YOLO26,
+    MERLIN_Scale_Study,
 )
 
 if torch.cuda.is_available():
@@ -405,6 +407,30 @@ def main():
     model_restormer.load_state_dict(torch.load(os.path.join(weights_dir, "sar_restormer.pth"), map_location=device))
     model_restormer.eval()
 
+    model_mer_gammamle = MERLIN_Scale_Study(in_channels=1, num_features=36, depth=6).to(device)
+    p_mer_gm = os.path.join(weights_dir, "sar_merlin_gammamle.pth")
+    if os.path.exists(p_mer_gm):
+        model_mer_gammamle.load_state_dict(torch.load(p_mer_gm, map_location=device))
+    model_mer_gammamle.eval()
+
+    model_mer_extremedeep = MERLIN_Scale_Study(in_channels=1, num_features=48, depth=10).to(device)
+    p_mer_ed = os.path.join(weights_dir, "sar_merlin_extremedeep.pth")
+    if os.path.exists(p_mer_ed):
+        model_mer_extremedeep.load_state_dict(torch.load(p_mer_ed, map_location=device))
+    model_mer_extremedeep.eval()
+
+    model_yolo26_s = SAR_YOLO26(width=32, num_blocks=3).to(device)
+    p_yolo_s = os.path.join(weights_dir, "sar_yolo26_small.pth")
+    if os.path.exists(p_yolo_s):
+        model_yolo26_s.load_state_dict(torch.load(p_yolo_s, map_location=device))
+    model_yolo26_s.eval()
+
+    model_yolo26_n = SAR_YOLO26(width=16, num_blocks=2).to(device)
+    p_yolo_n = os.path.join(weights_dir, "sar_yolo26_nano.pth")
+    if os.path.exists(p_yolo_n):
+        model_yolo26_n.load_state_dict(torch.load(p_yolo_n, map_location=device))
+    model_yolo26_n.eval()
+
     solver_ftv = JointFTVSARP(alpha=1.25, K=11, device=device)
 
     from sar_server import run_dl as run_dl_inference
@@ -520,6 +546,18 @@ def main():
         f_restormer = run_dl_inference(vv_raw, model_restormer)
         vh_restormer = run_dl_inference(vh_raw, model_restormer)
 
+        f_mer_gammamle = run_dl_inference(vv_raw, model_mer_gammamle)
+        vh_mer_gammamle = run_dl_inference(vh_raw, model_mer_gammamle)
+
+        f_mer_extremedeep = run_dl_inference(vv_raw, model_mer_extremedeep)
+        vh_mer_extremedeep = run_dl_inference(vh_raw, model_mer_extremedeep)
+
+        f_yolo26_s = run_dl_inference(vv_raw, model_yolo26_s)
+        vh_yolo26_s = run_dl_inference(vh_raw, model_yolo26_s)
+
+        f_yolo26_n = run_dl_inference(vv_raw, model_yolo26_n)
+        vh_yolo26_n = run_dl_inference(vh_raw, model_yolo26_n)
+
         # Каскадные конвейеры из сетки 1884 тестов
         f_ftv_resnet = run_dl_inference(f_ftv, model_resnet)
         vh_ftv_resnet = run_dl_inference(vh_ftv, model_resnet)
@@ -562,7 +600,11 @@ def main():
             "merlin_res": ("12c. ML: MERLIN Deep Res-U-Net", f_mer_res, vh_mer_res),
             "merlin_base": ("12d. ML: MERLIN U-Net Base (Dalsasso)", f_mer_base, vh_mer_base),
             "merlin_blind": ("12e. ML: MERLIN Blind-Spot (Legacy Softplus)", f_mer_blind, vh_mer_blind),
-            "restormer": ("13. ML: SAR-Restormer (Perera)", f_restormer, vh_restormer),
+            "merlin_gammamle": ("12f. ML: MERLIN Gamma MLE (EPI 1.001, Moran 0.06)", f_mer_gammamle, vh_mer_gammamle),
+            "merlin_extremedeep": ("12g. ML: MERLIN Extreme-Deep 10L (1.14M пар.)", f_mer_extremedeep, vh_mer_extremedeep),
+            "restormer": ("13. ML: SAR-Restormer V2 (Overhaul, PSNR 43.25)", f_restormer, vh_restormer),
+            "yolo26_s": ("13a. 2026: YOLO26-Small (C3k2/DWConv, PSNR 41.8 дБ)", f_yolo26_s, vh_yolo26_s),
+            "yolo26_n": ("13b. 2026: YOLO26-Nano (Ультралегкая, 7.6k пар.)", f_yolo26_n, vh_yolo26_n),
             "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
             "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
             "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_bil_ftv_bil),
@@ -666,7 +708,11 @@ def main():
         f_mer_res = run_dl_inference(im_in, model_mer_res)
         f_mer_base = run_dl_inference(im_in, model_mer_base)
         f_mer_blind = run_dl_inference(im_in, model_mer_blind)
+        f_mer_gammamle = run_dl_inference(im_in, model_mer_gammamle)
+        f_mer_extremedeep = run_dl_inference(im_in, model_mer_extremedeep)
         f_restormer = run_dl_inference(im_in, model_restormer)
+        f_yolo26_s = run_dl_inference(im_in, model_yolo26_s)
+        f_yolo26_n = run_dl_inference(im_in, model_yolo26_n)
 
         pairs_dict = {
             "noisy": {
@@ -759,10 +805,30 @@ def main():
                 "img": arr_to_b64(f_mer_blind),
                 "metrics": compute_metrics(im_in, f_mer_blind, gt_lin=im_gt, looks=4.4)
             },
+            "merlin_gammamle": {
+                "name": "12f. ML: MERLIN Gamma MLE (EPI 1.001, Moran 0.06)",
+                "img": arr_to_b64(f_mer_gammamle),
+                "metrics": compute_metrics(im_in, f_mer_gammamle, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_extremedeep": {
+                "name": "12g. ML: MERLIN Extreme-Deep 10L (1.14M пар.)",
+                "img": arr_to_b64(f_mer_extremedeep),
+                "metrics": compute_metrics(im_in, f_mer_extremedeep, gt_lin=im_gt, looks=4.4)
+            },
             "restormer": {
-                "name": "13. ML: SAR-Restormer (Perera)",
+                "name": "13. ML: SAR-Restormer V2 (Overhaul, PSNR 43.25)",
                 "img": arr_to_b64(f_restormer),
                 "metrics": compute_metrics(im_in, f_restormer, gt_lin=im_gt, looks=4.4)
+            },
+            "yolo26_s": {
+                "name": "13a. 2026: YOLO26-Small (C3k2/DWConv, PSNR 41.8 дБ)",
+                "img": arr_to_b64(f_yolo26_s),
+                "metrics": compute_metrics(im_in, f_yolo26_s, gt_lin=im_gt, looks=4.4)
+            },
+            "yolo26_n": {
+                "name": "13b. 2026: YOLO26-Nano (Ультралегкая, 7.6k пар.)",
+                "img": arr_to_b64(f_yolo26_n),
+                "metrics": compute_metrics(im_in, f_yolo26_n, gt_lin=im_gt, looks=4.4)
             },
         }
 

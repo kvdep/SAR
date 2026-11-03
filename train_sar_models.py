@@ -277,6 +277,18 @@ class SAR_Restormer(nn.Module):
         out = self.proj_out(dec)
         return torch.clamp(out, min=1e-6)
 
+# Экспорт исследованных и модернизированных архитектур
+from run_massive_sar_dl_experiments import (
+    SAR_YOLO26,
+    SAR_Restormer_V2,
+    MERLIN_Scale_Study,
+    SAR_ResNet_Study
+)
+
+# Перенаправление SAR_Restormer на стабильную архитектуру V2
+SAR_Restormer_Legacy = SAR_Restormer
+SAR_Restormer = SAR_Restormer_V2
+
 
 # =========================================================================
 # 3. ВЫСОКОСКОРОСТНАЯ ГЕНЕРАЦИЯ ОБУЧАЮЩИХ ВЫБОРОК В ПАМЯТИ
