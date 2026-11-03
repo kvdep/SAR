@@ -142,6 +142,51 @@ class SAR_MERLIN_CNN(nn.Module):
         x_hat = torch.exp(torch.clamp(log_x, min=-14.0, max=8.0))
         return torch.clamp(x_hat, min=1e-6)
 
+# Каноническая дилатированная модель
+MERLIN_DenseDilated_CNN = SAR_MERLIN_CNN
+
+# Импорт дополнительных исследованных архитектур
+from explore_merlin_architectures import (
+    MERLIN_AttnUNet_CBAM,
+    MERLIN_ResUNet_Deep,
+    MERLIN_UNet_Base
+)
+
+class SAR_MERLIN_BlindSpot_Legacy(nn.Module):
+    """Исходная слепая сеть с маскированием центрального отсчета и функцией Softplus."""
+    def __init__(self, in_channels: int = 1, num_features: int = 48):
+        super().__init__()
+        self.enc1 = nn.Sequential(
+            nn.Conv2d(in_channels, num_features, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(num_features, num_features, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self.enc2 = nn.Sequential(
+            nn.Conv2d(num_features, num_features * 2, 3, stride=2, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(num_features * 2, num_features * 2, 3, padding=2, dilation=2),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self.dec1 = nn.Sequential(
+            nn.ConvTranspose2d(num_features * 2, num_features, 3, stride=2, padding=1, output_padding=1),
+            nn.LeakyReLU(0.2, inplace=True)
+        )
+        self.fuse = nn.Sequential(
+            nn.Conv2d(num_features * 2, num_features, 3, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(num_features, in_channels, 1),
+            nn.Softplus()
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        e1 = self.enc1(x)
+        e2 = self.enc2(e1)
+        d1 = self.dec1(e2)
+        if d1.shape[2:] != e1.shape[2:]:
+            d1 = F.interpolate(d1, size=e1.shape[2:], mode='bilinear', align_corners=False)
+        out = self.fuse(torch.cat([d1, e1], dim=1))
+        return torch.clamp(out, min=1e-6)
+
 # Алиас для обратной совместимости
 SAR_MERLIN_BlindSpot = SAR_MERLIN_CNN
 

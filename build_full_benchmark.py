@@ -26,7 +26,18 @@ import torch.nn as nn
 from PIL import Image
 import xarray as xr
 
-from train_sar_models import SAR_ResNet, SAR_MERLIN_BlindSpot, SAR_Restormer, SAR_MERLIN_CNN
+from train_sar_models import (
+    SAR_ResNet,
+    SAR_Restormer,
+    SAR_MERLIN_CNN,
+    MERLIN_AttnUNet_CBAM,
+    MERLIN_ResUNet_Deep,
+    MERLIN_UNet_Base,
+    SAR_MERLIN_BlindSpot_Legacy,
+)
+
+if torch.cuda.is_available():
+    torch.cuda.set_per_process_memory_fraction(0.20, device=0)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -366,12 +377,29 @@ def main():
     model_resnet.load_state_dict(torch.load(os.path.join(weights_dir, "sar_resnet_vitale.pth"), map_location=device))
     model_resnet.eval()
 
-    model_merlin = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device)
-    p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
-    if not os.path.exists(p_mer):
-        p_mer = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
-    model_merlin.load_state_dict(torch.load(p_mer, map_location=device))
-    model_merlin.eval()
+    # 5 моделей семейства MERLIN
+    model_mer_dense = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device)
+    p_dense = os.path.join(weights_dir, "merlin_densedilated_cnn.pth")
+    if not os.path.exists(p_dense):
+        p_dense = os.path.join(weights_dir, "sar_merlin_cnn.pth")
+    model_mer_dense.load_state_dict(torch.load(p_dense, map_location=device))
+    model_mer_dense.eval()
+
+    model_mer_cbam = MERLIN_AttnUNet_CBAM(in_channels=1, base_ch=32).to(device)
+    model_mer_cbam.load_state_dict(torch.load(os.path.join(weights_dir, "merlin_attnunet_cbam.pth"), map_location=device))
+    model_mer_cbam.eval()
+
+    model_mer_res = MERLIN_ResUNet_Deep(in_channels=1, base_ch=40).to(device)
+    model_mer_res.load_state_dict(torch.load(os.path.join(weights_dir, "merlin_resunet_deep.pth"), map_location=device))
+    model_mer_res.eval()
+
+    model_mer_base = MERLIN_UNet_Base(in_channels=1, base_ch=32).to(device)
+    model_mer_base.load_state_dict(torch.load(os.path.join(weights_dir, "merlin_unet_base.pth"), map_location=device))
+    model_mer_base.eval()
+
+    model_mer_blind = SAR_MERLIN_BlindSpot_Legacy(in_channels=1, num_features=48).to(device)
+    model_mer_blind.load_state_dict(torch.load(os.path.join(weights_dir, "sar_merlin_blindspot.pth"), map_location=device))
+    model_mer_blind.eval()
 
     model_restormer = SAR_Restormer(in_channels=1, base_dim=32).to(device)
     model_restormer.load_state_dict(torch.load(os.path.join(weights_dir, "sar_restormer.pth"), map_location=device))
@@ -474,8 +502,20 @@ def main():
         f_resnet = run_dl_inference(vv_raw, model_resnet)
         vh_resnet = run_dl_inference(vh_raw, model_resnet)
 
-        f_merlin = run_dl_inference(vv_raw, model_merlin)
-        vh_merlin = run_dl_inference(vh_raw, model_merlin)
+        f_mer_dense = run_dl_inference(vv_raw, model_mer_dense)
+        vh_mer_dense = run_dl_inference(vh_raw, model_mer_dense)
+
+        f_mer_cbam = run_dl_inference(vv_raw, model_mer_cbam)
+        vh_mer_cbam = run_dl_inference(vh_raw, model_mer_cbam)
+
+        f_mer_res = run_dl_inference(vv_raw, model_mer_res)
+        vh_mer_res = run_dl_inference(vh_raw, model_mer_res)
+
+        f_mer_base = run_dl_inference(vv_raw, model_mer_base)
+        vh_mer_base = run_dl_inference(vh_raw, model_mer_base)
+
+        f_mer_blind = run_dl_inference(vv_raw, model_mer_blind)
+        vh_mer_blind = run_dl_inference(vh_raw, model_mer_blind)
 
         f_restormer = run_dl_inference(vv_raw, model_restormer)
         vh_restormer = run_dl_inference(vh_raw, model_restormer)
@@ -516,7 +556,12 @@ def main():
             "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_gamma),
             "ftv": ("10. Новый: Joint FTV-SARP (α=1.25)", f_ftv, vh_ftv),
             "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_resnet),
-            "merlin": ("12. ML: MERLIN CNN (Dalsasso et al.)", f_merlin, vh_merlin),
+            "merlin": ("12. ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)", f_mer_dense, vh_mer_dense),
+            "merlin_dense": ("12a. ML: MERLIN Dense-Dilated (Без потери разрешения)", f_mer_dense, vh_mer_dense),
+            "merlin_cbam": ("12b. ML: MERLIN Dual-Attention (CBAM)", f_mer_cbam, vh_mer_cbam),
+            "merlin_res": ("12c. ML: MERLIN Deep Res-U-Net", f_mer_res, vh_mer_res),
+            "merlin_base": ("12d. ML: MERLIN U-Net Base (Dalsasso)", f_mer_base, vh_mer_base),
+            "merlin_blind": ("12e. ML: MERLIN Blind-Spot (Legacy Softplus)", f_mer_blind, vh_mer_blind),
             "restormer": ("13. ML: SAR-Restormer (Perera)", f_restormer, vh_restormer),
             "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
             "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
@@ -616,7 +661,11 @@ def main():
 
         # 3. DL модели
         f_resnet = run_dl_inference(im_in, model_resnet)
-        f_merlin = run_dl_inference(im_in, model_merlin)
+        f_mer_dense = run_dl_inference(im_in, model_mer_dense)
+        f_mer_cbam = run_dl_inference(im_in, model_mer_cbam)
+        f_mer_res = run_dl_inference(im_in, model_mer_res)
+        f_mer_base = run_dl_inference(im_in, model_mer_base)
+        f_mer_blind = run_dl_inference(im_in, model_mer_blind)
         f_restormer = run_dl_inference(im_in, model_restormer)
 
         pairs_dict = {
@@ -681,9 +730,34 @@ def main():
                 "metrics": compute_metrics(im_in, f_resnet, gt_lin=im_gt, looks=4.4)
             },
             "merlin": {
-                "name": "12. ML: MERLIN Blind-Spot (Dalsasso)",
-                "img": arr_to_b64(f_merlin),
-                "metrics": compute_metrics(im_in, f_merlin, gt_lin=im_gt, looks=4.4)
+                "name": "12. ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)",
+                "img": arr_to_b64(f_mer_dense),
+                "metrics": compute_metrics(im_in, f_mer_dense, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_dense": {
+                "name": "12a. ML: MERLIN Dense-Dilated (Без потери разрешения)",
+                "img": arr_to_b64(f_mer_dense),
+                "metrics": compute_metrics(im_in, f_mer_dense, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_cbam": {
+                "name": "12b. ML: MERLIN Dual-Attention (CBAM)",
+                "img": arr_to_b64(f_mer_cbam),
+                "metrics": compute_metrics(im_in, f_mer_cbam, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_res": {
+                "name": "12c. ML: MERLIN Deep Res-U-Net",
+                "img": arr_to_b64(f_mer_res),
+                "metrics": compute_metrics(im_in, f_mer_res, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_base": {
+                "name": "12d. ML: MERLIN U-Net Base (Dalsasso)",
+                "img": arr_to_b64(f_mer_base),
+                "metrics": compute_metrics(im_in, f_mer_base, gt_lin=im_gt, looks=4.4)
+            },
+            "merlin_blind": {
+                "name": "12e. ML: MERLIN Blind-Spot (Legacy Softplus)",
+                "img": arr_to_b64(f_mer_blind),
+                "metrics": compute_metrics(im_in, f_mer_blind, gt_lin=im_gt, looks=4.4)
             },
             "restormer": {
                 "name": "13. ML: SAR-Restormer (Perera)",

@@ -735,7 +735,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const FILTER_OPTIONS = [
             { id: "FTV", name: "Joint FTV-SARP (α=1.25, SARP)" },
             { id: "RES", name: "ML: SAR-ResNet (Vitale et al.)" },
-            { id: "MER", name: "ML: MERLIN CNN (Dalsasso et al.)" },
+            { id: "MER", name: "ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)" },
+            { id: "MER_DENSE", name: "ML: MERLIN Dense-Dilated (Без потери разрешения)" },
+            { id: "MER_CBAM", name: "ML: MERLIN Dual-Attention (CBAM)" },
+            { id: "MER_RES", name: "ML: MERLIN Deep Res-U-Net" },
+            { id: "MER_BASE", name: "ML: MERLIN U-Net Base (Dalsasso)" },
+            { id: "MER_BLIND", name: "ML: MERLIN Blind-Spot (Legacy Softplus)" },
             { id: "RST", name: "ML: SAR-Restormer (Perera et al.)" },
             { id: "RPCA", name: "НИР: Robust PCA (Low-Rank L, IALM)" },
             { id: "RPCA_S", name: "НИР: Robust PCA (Sparse S, цели и корабли)" },
@@ -765,7 +770,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 case "RPCA": return { max_iter: 12, tol: 0.0005 };
                 case "RPCA_S": return { max_iter: 12, tol: 0.0005 };
                 case "RES": return { _model: true, arch: "SAR-ResNet (17 слоев)", features: 64, weights: "sar_resnet_vitale.pth", info: "Обучена на синтетических текстурах BSDS500 + Sentinel-1 50-looks GEE." };
-                case "MER": return { _model: true, arch: "MERLIN CNN (U-Net)", features: 48, depth: 3, weights: "sar_merlin_cnn.pth", info: "Обучена на реальных Sentinel-1 RTC патчах. Сохраняет темные тени и дюны." };
+                case "MER":
+                case "MER_DENSE": return { _model: true, arch: "MERLIN Dense-Dilated (Чемпион)", features: 36, dilation: "1,2,3,5,2,1", weights: "merlin_densedilated_cnn.pth", info: "Каноническая модель без потери разрешения. ENL: 67.90, Moran I: 0.769." };
+                case "MER_CBAM": return { _model: true, arch: "MERLIN Dual-Attention (CBAM)", features: 32, depth: 3, weights: "merlin_attnunet_cbam.pth", info: "U-Net с канальным и пространственным вниманием CBAM. ENL: 58.82, EPI: 0.911." };
+                case "MER_RES": return { _model: true, arch: "MERLIN Deep Res-U-Net", features: 40, depth: 4, weights: "merlin_resunet_deep.pth", info: "Глубокий Res-U-Net с дилатированными блоками. ENL: 50.32, EPI: 0.910." };
+                case "MER_BASE": return { _model: true, arch: "MERLIN U-Net Base (Dalsasso)", features: 32, depth: 3, weights: "merlin_unet_base.pth", info: "Классический U-Net с лог-вычитанием спекла. ENL: 11.36, EPI: 0.908." };
+                case "MER_BLIND": return { _model: true, arch: "MERLIN Blind-Spot (Legacy)", features: 48, depth: 2, weights: "sar_merlin_blindspot.pth", info: "Исходная сеть со слепым пятном и Softplus." };
                 case "RST": return { _model: true, arch: "SAR-Restormer (Трансформер)", base_dim: 32, heads: 4, weights: "sar_restormer.pth", info: "Внимание MDTA + блок GDFN. Инференс в детерминированном FP32." };
                 default: return {};
             }
@@ -1471,7 +1481,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 if (op === "BXC") curr = filterBoxcarJS(curr, W, H, w);
                 else if (op === "MED") curr = filterMedianJS(curr, W, H, w);
                 else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, w);
-                else if (op === "BIL" || op === "FTV" || op === "RES" || op === "MER" || op === "RST") curr = filterBilateralJS(curr, W, H, w, 2.0, 0.12);
+                else if (op === "BIL" || op === "FTV" || op === "RES" || op.startsWith("MER") || op === "RST") curr = filterBilateralJS(curr, W, H, w, 2.0, 0.12);
                 else curr = filterLeeJS(curr, W, H, w);
             }
 
@@ -1590,6 +1600,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 "ftv": ["FTV"],
                 "resnet": ["RES"],
                 "merlin": ["MER"],
+                "merlin_dense": ["MER_DENSE"],
+                "merlin_cbam": ["MER_CBAM"],
+                "merlin_res": ["MER_RES"],
+                "merlin_base": ["MER_BASE"],
+                "merlin_blind": ["MER_BLIND"],
                 "restormer": ["RST"],
                 "ftv_resnet": ["FTV", "RES"],
                 "ftv_bilateral": ["FTV", "BIL"],

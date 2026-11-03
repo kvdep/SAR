@@ -48,7 +48,16 @@ data_cache_dir = os.path.join(BASE_DIR, "data_cache")
 # -------------------------------------------------------------------------
 # 1. АРХИТЕКТУРЫ СЕТЕЙ
 # -------------------------------------------------------------------------
-from train_sar_models import SAR_ResNet, SAR_MERLIN_CNN, SAR_Restormer
+from train_sar_models import (
+    SAR_ResNet,
+    SAR_MERLIN_CNN,
+    SAR_Restormer,
+    MERLIN_DenseDilated_CNN,
+    MERLIN_AttnUNet_CBAM,
+    MERLIN_ResUNet_Deep,
+    MERLIN_UNet_Base,
+    SAR_MERLIN_BlindSpot_Legacy,
+)
 from build_full_benchmark import (
     filter_boxcar_mean, filter_median, filter_lee, filter_enhanced_lee,
     filter_kuan, filter_frost, filter_enhanced_frost, filter_bilateral,
@@ -64,11 +73,45 @@ if os.path.exists(p_res):
     model_res.load_state_dict(torch.load(p_res, map_location=device))
     print(f"[СЕРВЕР] SAR-ResNet веса загружены: {p_res}")
 
-model_mer = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device).eval()
-p_mer = os.path.join(weights_dir, "sar_merlin_cnn.pth")
-if os.path.exists(p_mer):
-    model_mer.load_state_dict(torch.load(p_mer, map_location=device))
-    print(f"[СЕРВЕР] Каноническая модель MERLIN CNN загружена: {p_mer}")
+# 1. MERLIN Dense-Dilated (Канонический Чемпион)
+model_mer_dense = SAR_MERLIN_CNN(in_channels=1, num_features=36).to(device).eval()
+p_mer_dense = os.path.join(weights_dir, "sar_merlin_cnn.pth")
+if not os.path.exists(p_mer_dense):
+    p_mer_dense = os.path.join(weights_dir, "merlin_densedilated_cnn.pth")
+if os.path.exists(p_mer_dense):
+    model_mer_dense.load_state_dict(torch.load(p_mer_dense, map_location=device))
+    print(f"[СЕРВЕР] MERLIN Dense-Dilated веса загружены: {p_mer_dense}")
+
+# 2. MERLIN CBAM Attention
+model_mer_cbam = MERLIN_AttnUNet_CBAM(in_channels=1, base_ch=32).to(device).eval()
+p_mer_cbam = os.path.join(weights_dir, "merlin_attnunet_cbam.pth")
+if os.path.exists(p_mer_cbam):
+    model_mer_cbam.load_state_dict(torch.load(p_mer_cbam, map_location=device))
+    print(f"[СЕРВЕР] MERLIN CBAM Attention веса загружены: {p_mer_cbam}")
+
+# 3. MERLIN Deep Res-U-Net
+model_mer_res = MERLIN_ResUNet_Deep(in_channels=1, base_ch=40).to(device).eval()
+p_mer_res = os.path.join(weights_dir, "merlin_resunet_deep.pth")
+if os.path.exists(p_mer_res):
+    model_mer_res.load_state_dict(torch.load(p_mer_res, map_location=device))
+    print(f"[СЕРВЕР] MERLIN Res-U-Net веса загружены: {p_mer_res}")
+
+# 4. MERLIN U-Net Base
+model_mer_base = MERLIN_UNet_Base(in_channels=1, base_ch=32).to(device).eval()
+p_mer_base = os.path.join(weights_dir, "merlin_unet_base.pth")
+if os.path.exists(p_mer_base):
+    model_mer_base.load_state_dict(torch.load(p_mer_base, map_location=device))
+    print(f"[СЕРВЕР] MERLIN U-Net Base веса загружены: {p_mer_base}")
+
+# 5. MERLIN Blind-Spot Legacy
+model_mer_blind = SAR_MERLIN_BlindSpot_Legacy(in_channels=1, num_features=48).to(device).eval()
+p_mer_blind = os.path.join(weights_dir, "sar_merlin_blindspot.pth")
+if os.path.exists(p_mer_blind):
+    model_mer_blind.load_state_dict(torch.load(p_mer_blind, map_location=device))
+    print(f"[СЕРВЕР] MERLIN Blind-Spot Legacy веса загружены: {p_mer_blind}")
+
+# Основная ссылка для дефолтного MERLIN
+model_mer = model_mer_dense
 
 model_rst = SAR_Restormer(in_channels=1, base_dim=32).to(device).eval()
 p_rst = os.path.join(weights_dir, "sar_restormer.pth")
@@ -84,7 +127,8 @@ solver_ftv_default = JointFTVSARP(alpha=1.25, K=11, device=device)
 
 def run_dl(im_np: np.ndarray, model: nn.Module) -> np.ndarray:
     """Безопасный нейросетевой вывод с 2D оконным блочным разбиением (окно Ханна),
-    гарантирующий потребление VRAM < 250 МБ и исключающий ошибки CUDA Out of Memory."""
+    гарантирующий потребление VRAM < 250 МБ и исключающий ошибки CUDA Out of Memory
+    и пропуски краевых отсчетов (черные полосы)."""
     H, W = im_np.shape
     scale = float(np.percentile(im_np, 99.5))
     if scale < 1e-4:
@@ -103,31 +147,41 @@ def run_dl(im_np: np.ndarray, model: nn.Module) -> np.ndarray:
             torch.cuda.empty_cache()
         return np.maximum(np.nan_to_num(res, nan=1e-6).astype(np.float32), 1e-6)
 
-    # Оконная блочная обработка 256x256 с шагом 224 и перекрытием 32
     tile_size = 256
-    stride = 224
-    pad_h = (stride - (H % stride)) % stride
-    pad_w = (stride - (W % stride)) % stride
-    if H + pad_h < tile_size:
-        pad_h = tile_size - H
-    if W + pad_w < tile_size:
-        pad_w = tile_size - W
+    stride = 192
 
-    padded = np.pad(norm_im, ((0, pad_h), (0, pad_w)), mode='reflect')
-    H_pad, W_pad = padded.shape
+    pad_h = max(0, tile_size - H)
+    pad_w = max(0, tile_size - W)
+    if pad_h > 0 or pad_w > 0:
+        padded = np.pad(norm_im, ((0, pad_h), (0, pad_w)), mode='reflect')
+    else:
+        padded = norm_im
+    H_p, W_p = padded.shape
+
+    def get_starts(length: int) -> list[int]:
+        if length <= tile_size:
+            return [0]
+        starts = list(range(0, length - tile_size + 1, stride))
+        last = length - tile_size
+        if starts[-1] != last:
+            starts.append(last)
+        return starts
+
+    r_starts = get_starts(H_p)
+    c_starts = get_starts(W_p)
 
     w_y = np.hanning(tile_size + 2)[1:-1].astype(np.float32)
     w_x = np.hanning(tile_size + 2)[1:-1].astype(np.float32)
-    window_2d = np.outer(w_y, w_x)
+    window_2d = np.outer(w_y, w_x) + 1e-4
     window_t = torch.from_numpy(window_2d).to(device)
 
-    canvas = torch.zeros((H_pad, W_pad), dtype=torch.float32, device=device)
-    weight_canvas = torch.zeros((H_pad, W_pad), dtype=torch.float32, device=device)
+    canvas = torch.zeros((H_p, W_p), dtype=torch.float32, device=device)
+    weight_canvas = torch.zeros((H_p, W_p), dtype=torch.float32, device=device)
 
     model.eval()
     with torch.no_grad():
-        for r in range(0, H_pad - tile_size + 1, stride):
-            for c in range(0, W_pad - tile_size + 1, stride):
+        for r in r_starts:
+            for c in c_starts:
                 tile = padded[r:r+tile_size, c:c+tile_size]
                 t_tile = torch.from_numpy(tile).unsqueeze(0).unsqueeze(0).to(device)
                 if isinstance(model, SAR_Restormer):
@@ -213,9 +267,14 @@ OPERATORS = {
     # 2. Вариационный метод дробного порядка FTV-SARP
     "FTV": lambda x, **kw: run_ftv(x, alpha=float(kw.get("alpha", 1.25)), n_iter=int(kw.get("n_iter", 15)), K=int(kw.get("K", 11))),
 
-    # 3. Глубокие нейросетевые модели
+    # 3. Глубокие нейросетевые модели (все исследованные варианты MERLIN)
     "RES": lambda x, **kw: run_dl(x, model_res),
-    "MER": lambda x, **kw: run_dl(x, model_mer),
+    "MER": lambda x, **kw: run_dl(x, model_mer_dense),
+    "MER_DENSE": lambda x, **kw: run_dl(x, model_mer_dense),
+    "MER_CBAM": lambda x, **kw: run_dl(x, model_mer_cbam),
+    "MER_RES": lambda x, **kw: run_dl(x, model_mer_res),
+    "MER_BASE": lambda x, **kw: run_dl(x, model_mer_base),
+    "MER_BLIND": lambda x, **kw: run_dl(x, model_mer_blind),
     "RST": lambda x, **kw: run_dl(x, model_rst),
 
     # 4. Аналитический метод НИР (Robust PCA IALM)
