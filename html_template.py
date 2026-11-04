@@ -448,8 +448,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                 <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px;">Оптическая подложка карты:</div>
                 <select id="basemap-select" onchange="onBasemapChange(this.value)" style="margin-bottom: 4px;">
+                    <option value="esri" selected>🛰️ Esri World Imagery (Высокое разрешение)</option>
                     <option value="seasonal_gibs">🌍 Сезонная оптическая (NASA GIBS TrueColor под выбранный сезон)</option>
-                    <option value="esri">🛰️ Esri World Imagery (Высокое разрешение)</option>
                     <option value="osm">🗺️ OpenStreetMap (Картографическая схема)</option>
                     <option value="none">⬛ Отключить подложку (Темный фон)</option>
                 </select>
@@ -539,6 +539,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             <div class="section">
                 <div class="section-title">5. Численные метрики качества</div>
+                <div id="gis-pair-comparison" style="margin-bottom: 12px;"></div>
+                <div style="font-size: 0.72rem; color: #9fa8da; margin-bottom: 6px; font-weight: 600;">Сводная таблица всех фильтров:</div>
                 <div style="overflow-x: auto; max-width: 100%;">
                 <table class="metrics-table">
                     <thead></thead>
@@ -822,7 +824,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             "autumn": "2023-10-15",
             "winter": "2023-01-15"
         };
-        let currentBasemapType = "seasonal_gibs";
+        let currentBasemapType = "esri";
         let currentSarOpacity = 1.0;
         let baseTileLayer = null;
 
@@ -891,11 +893,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function populatePipeSelects() {
             const q = DATA[currentQuad];
-            const pipeKeys = Object.keys(q.pipelines);
+            const currentPipelines = (q.seasons && q.seasons[currentSeason]) ? q.seasons[currentSeason] : q.pipelines;
+            const pipeKeys = Object.keys(currentPipelines);
             const selectA = document.getElementById('pipe-a-select');
             const selectB = document.getElementById('pipe-b-select');
-            selectA.innerHTML = pipeKeys.map(k => `<option value="${k}">${q.pipelines[k].name}</option>`).join('');
-            selectB.innerHTML = pipeKeys.map(k => `<option value="${k}">${q.pipelines[k].name}</option>`).join('');
+            selectA.innerHTML = pipeKeys.map(k => `<option value="${k}">${currentPipelines[k].name}</option>`).join('');
+            selectB.innerHTML = pipeKeys.map(k => `<option value="${k}">${currentPipelines[k].name}</option>`).join('');
             
             if (!pipeKeys.includes(currentPipeA)) currentPipeA = pipeKeys[0];
             if (!pipeKeys.includes(currentPipeB)) {
@@ -1523,7 +1526,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         async function executeClientSidePipeline(stages, quadKey, layer) {
             const t0 = performance.now();
             const q = DATA[quadKey];
-            const rawUrl = q.pipelines['raw'].layers[layer] || q.pipelines['raw'].layers['rgb'] || q.pipelines['raw'].layers['vv'];
+            const currentPipelines = (q.seasons && q.seasons[currentSeason]) ? q.seasons[currentSeason] : q.pipelines;
+            const rawPipe = currentPipelines['raw'] || q.pipelines['raw'];
+            const rawUrl = rawPipe.layers[layer] || rawPipe.layers['rgb'] || rawPipe.layers['vv'];
             const img = new Image();
             img.crossOrigin = "anonymous";
             await new Promise((res, rej) => {
@@ -1645,6 +1650,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             currentSeason = newSeason;
             updateBasemapTileLayer();
             if (currentMode === 'gis') {
+                populatePipeSelects();
                 updateLayers();
             }
         }
@@ -1655,20 +1661,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function updateLayers() {
             const q = DATA[currentQuad];
-            const pipeA = q.pipelines[currentPipeA] || q.pipelines[Object.keys(q.pipelines)[0]];
+            const currentPipelines = (q.seasons && q.seasons[currentSeason]) ? q.seasons[currentSeason] : q.pipelines;
+            const pipeA = currentPipelines[currentPipeA] || currentPipelines[Object.keys(currentPipelines)[0]];
 
-            let urlA = "";
-            if (currentSeason !== 'spring' && q.seasons && q.seasons[currentSeason]) {
-                const sObj = q.seasons[currentSeason];
-                urlA = sObj[currentLayer] || sObj['rgb'] || pipeA.layers[currentLayer] || pipeA.layers['rgb'];
-            } else {
-                urlA = (seasonalAImageUrl && currentSeason !== 'spring') ? seasonalAImageUrl : (pipeA.layers[currentLayer] || pipeA.layers['rgb']);
-            }
+            let urlA = pipeA.layers[currentLayer] || pipeA.layers['rgb'];
 
             let urlB = "";
             let labelB = "";
 
-            const pipeB = q.pipelines[currentPipeB] || q.pipelines[Object.keys(q.pipelines)[0]];
+            const pipeB = currentPipelines[currentPipeB] || currentPipelines[Object.keys(currentPipelines)[0]];
             if (isCustomBActive && customBImageUrl) {
                 urlB = customBImageUrl;
                 labelB = (bMode === 'custom') ? ("Каскад: " + customStages.map(s => s.op).join(' → ')) : (pipeB.name.includes('.') ? pipeB.name.split('.').slice(1).join('.').trim() : pipeB.name);
@@ -1718,46 +1719,187 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         }
 
-        function updateMetricsTable() {
-            const q = DATA[currentQuad];
-            let pipeKeys = Object.keys(q.pipelines);
-            const thead = document.querySelector('.metrics-table thead');
-            const tbody = document.getElementById('metrics-body');
+        function computeMetricDelta(metricKey, vA, vB) {
+            if (typeof vA !== 'number' || typeof vB !== 'number') {
+                return { deltaStr: '-', bgStyle: 'background: rgba(255,255,255,0.05); color: #888;', isBetter: null };
+            }
+            const diff = vB - vA;
+            let score = 0; // > 0: improved, < 0: worsened
 
-            let headers = pipeKeys.map(k => {
-                const n = q.pipelines[k].name;
-                const shortName = n.includes('.') ? n.split('.').slice(1).join('.').trim().split(' ')[0] : n;
-                return `<th>${shortName}</th>`;
-            }).join('');
-
-            if (isCustomBActive && customBMetrics) {
-                headers += `<th style="color:#00e676; border-left: 2px solid #00e676;">[Каскад B]</th>`;
+            if (metricKey === 'enl') {
+                score = diff / Math.max(Math.abs(vA), 1.0);
+            } else if (metricKey === 'epi') {
+                const distA = Math.abs(vA - 1.0);
+                const distB = Math.abs(vB - 1.0);
+                score = (distA - distB) / Math.max(distA, 0.05);
+            } else if (metricKey === 'bias_db' || metricKey === 'moran_i') {
+                const distA = Math.abs(vA);
+                const distB = Math.abs(vB);
+                score = (distA - distB) / Math.max(distA, 0.05);
+            } else if (metricKey === 'ratio_var') {
+                const distA = Math.abs(vA - 0.227);
+                const distB = Math.abs(vB - 0.227);
+                score = (distA - distB) / Math.max(distA, 0.05);
+            } else if (metricKey === 'ssi' || metricKey === 'smpi' || metricKey === 'time_ms') {
+                score = -diff / Math.max(Math.abs(vA), 0.05);
+            } else if (metricKey === 'psnr' || metricKey === 'ssim') {
+                score = diff / Math.max(Math.abs(vA), 0.05);
             }
 
-            thead.innerHTML = `<tr><th>Метрика</th>${headers}</tr>`;
+            const t = Math.max(-1.0, Math.min(1.0, score));
+            const sign = diff > 0 ? '+' : '';
+            const arrow = score > 0.001 ? '▲' : (score < -0.001 ? '▼' : '●');
+            
+            let deltaText = '';
+            if (metricKey === 'time_ms') {
+                deltaText = `${arrow} ${sign}${diff.toFixed(2)} мс`;
+            } else if (metricKey === 'enl' || metricKey === 'psnr') {
+                deltaText = `${arrow} ${sign}${diff.toFixed(2)}`;
+            } else {
+                deltaText = `${arrow} ${sign}${diff.toFixed(3)}`;
+            }
+
+            let bgStyle = '';
+            if (t > 0.01) {
+                const alpha = 0.15 + 0.45 * t;
+                const borderAlpha = 0.30 + 0.50 * t;
+                bgStyle = `background: rgba(0, 230, 118, ${alpha.toFixed(2)}); color: #00e676; border: 1px solid rgba(0, 230, 118, ${borderAlpha.toFixed(2)});`;
+            } else if (t < -0.01) {
+                const absT = Math.abs(t);
+                const alpha = 0.15 + 0.45 * absT;
+                const borderAlpha = 0.30 + 0.50 * absT;
+                bgStyle = `background: rgba(255, 23, 68, ${alpha.toFixed(2)}); color: #ff5252; border: 1px solid rgba(255, 23, 68, ${borderAlpha.toFixed(2)});`;
+            } else {
+                bgStyle = `background: rgba(255, 255, 255, 0.06); color: #cfd8dc; border: 1px solid rgba(255, 255, 255, 0.12);`;
+            }
+
+            return { deltaStr: deltaText, bgStyle, isBetter: score > 0.01, score };
+        }
+
+        function updateMetricsTable() {
+            const q = DATA[currentQuad];
+            const currentPipelines = (q.seasons && q.seasons[currentSeason]) ? q.seasons[currentSeason] : q.pipelines;
+            let pipeKeys = Object.keys(currentPipelines);
+
+            const pipeA = currentPipelines[currentPipeA] || currentPipelines[pipeKeys[0]];
+            const pipeB = currentPipelines[currentPipeB] || currentPipelines[pipeKeys[0]];
+            const nameA = pipeA.name;
+            const nameB = (isCustomBActive && bMode === 'custom') ? ("Каскад: " + customStages.map(s => s.op).join(' → ')) : pipeB.name;
+            const metricsA = pipeA.metrics || {};
+            const metricsB = (isCustomBActive && customBMetrics) ? customBMetrics : (pipeB.metrics || {});
 
             const metricDefs = [
                 { key: 'enl', name: 'ENL (Гладкость)', format: v => typeof v === 'number' ? v.toFixed(2) : (v || '-') },
                 { key: 'epi', name: 'EPI (Границы)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
                 { key: 'bias_db', name: 'Bias (дБ)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
+                { key: 'ratio_var', name: 'Var(r) (→ 0.227)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
+                { key: 'moran_i', name: 'Moran I (Автокорр.)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
+                { key: 'ssi', name: 'SSI (< 1.0)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
+                { key: 'smpi', name: 'SMPI (Качество)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
                 { key: 'psnr', name: 'PSNR vs GT (дБ)', format: v => typeof v === 'number' ? v.toFixed(2) : (v || '-') },
                 { key: 'ssim', name: 'SSIM vs GT', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
-                { key: 'ssi', name: 'SSI (< 1)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
-                { key: 'smpi', name: 'SMPI (Качество)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
-                { key: 'ratio_var', name: 'Var(r) (→ 0.227)', format: v => typeof v === 'number' ? v.toFixed(3) : (v || '-') },
+                { key: 'time_ms', name: 'Время работы (мс)', format: v => typeof v === 'number' ? v.toFixed(2) + ' мс' : (v || '-') },
             ];
 
+            const cardEl = document.getElementById('gis-pair-comparison');
+            if (cardEl) {
+                const shortA = nameA.includes('.') ? nameA.split('.').slice(1).join('.').trim() : nameA;
+                const shortB = nameB.includes('.') ? nameB.split('.').slice(1).join('.').trim() : nameB;
+
+                let rowsHtml = metricDefs.map(m => {
+                    const vA = metricsA[m.key];
+                    const vB = (m.key === 'time_ms' && isCustomBActive && customBMetrics) 
+                        ? (customBMetrics.compute_time_ms || customBMetrics.time_ms || customBMetrics.timeMs) 
+                        : metricsB[m.key];
+                    const d = computeMetricDelta(m.key, vA, vB);
+                    const fmtA = m.format(vA);
+                    const fmtB = m.format(vB);
+
+                    return `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 4px 6px; font-weight: 600; color: #cfd8dc;">${m.name}</td>
+                            <td style="padding: 4px 6px; text-align: right; color: #8c9eff; font-family: monospace;">${fmtA}</td>
+                            <td style="padding: 4px 6px; text-align: right; color: #69f0ae; font-family: monospace; font-weight: bold;">${fmtB}</td>
+                            <td style="padding: 4px 6px; text-align: center;">
+                                <span style="display: inline-block; padding: 2px 7px; border-radius: 4px; font-weight: bold; font-size: 0.72rem; font-family: monospace; ${d.bgStyle}">
+                                    ${d.deltaStr}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                cardEl.innerHTML = `
+                    <div style="background: #191a24; border: 1px solid #2f2f3d; border-radius: 8px; padding: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #2c2d3d;">
+                            <span style="background: rgba(61, 90, 254, 0.25); color: #8c9eff; border: 1px solid #3d5afe; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.74rem;">[A] ${shortA}</span>
+                            <span style="color: #9fa8da; font-size: 0.70rem; font-weight: 600;">Сравнение A ➔ B</span>
+                            <span style="background: rgba(0, 230, 118, 0.25); color: #69f0ae; border: 1px solid #00e676; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.74rem;">[B] ${shortB}</span>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.74rem;">
+                            <thead>
+                                <tr style="color: #8c9eff; border-bottom: 1px solid #333346; text-align: left;">
+                                    <th style="padding: 4px 6px;">Метрика</th>
+                                    <th style="padding: 4px 6px; text-align: right;">Слой A</th>
+                                    <th style="padding: 4px 6px; text-align: right; color: #69f0ae;">Слой B</th>
+                                    <th style="padding: 4px 6px; text-align: center; color: #e0e0e8;">Δ (B - A)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            const thead = document.querySelector('.metrics-table thead');
+            const tbody = document.getElementById('metrics-body');
+
+            let headers = pipeKeys.map(k => {
+                const n = currentPipelines[k].name;
+                const shortName = n.includes('.') ? n.split('.').slice(1).join('.').trim().split(' ')[0] : n;
+                const isA = (k === currentPipeA);
+                const isB = (k === currentPipeB && !isCustomBActive);
+                if (isA) {
+                    return `<th style="color: #8c9eff; border-bottom: 2px solid #3d5afe; background: rgba(61,90,254,0.15);">[A] ${shortName}</th>`;
+                } else if (isB) {
+                    return `<th style="color: #69f0ae; border-bottom: 2px solid #00e676; background: rgba(0,230,118,0.15);">[B] ${shortName}</th>`;
+                }
+                return `<th>${shortName}</th>`;
+            }).join('');
+
+            if (isCustomBActive && customBMetrics) {
+                headers += `<th style="color:#00e676; border-left: 2px solid #00e676; border-bottom: 2px solid #00e676; background: rgba(0,230,118,0.2);">[B] Каскад</th>`;
+            }
+
+            thead.innerHTML = `<tr><th>Метрика</th>${headers}</tr>`;
+
             tbody.innerHTML = metricDefs.map(m => {
+                const vA = metricsA[m.key];
+
                 let cells = pipeKeys.map(k => {
-                    const metrics = q.pipelines[k].metrics || {};
+                    const metrics = currentPipelines[k].metrics || {};
                     const val = metrics[m.key];
                     const formatted = m.format(val);
+                    const isA = (k === currentPipeA);
+                    const isB = (k === currentPipeB && !isCustomBActive);
+
+                    if (isA) {
+                        return `<td style="color: #8c9eff; font-weight: bold; background: rgba(61,90,254,0.12); border-left: 1px solid #3d5afe; border-right: 1px solid #3d5afe;">${formatted}</td>`;
+                    } else if (isB) {
+                        const d = computeMetricDelta(m.key, vA, val);
+                        return `<td style="font-weight: bold; border-left: 1px solid #00e676; border-right: 1px solid #00e676; ${d.bgStyle}">${formatted}</td>`;
+                    }
                     return `<td>${formatted}</td>`;
                 }).join('');
 
                 if (isCustomBActive && customBMetrics) {
-                    const valCustom = customBMetrics[m.key];
-                    cells += `<td style="color:#00e676; font-weight:bold; border-left: 2px solid #00e676; background: rgba(0,230,118,0.1);">${m.format(valCustom)}</td>`;
+                    const valCustom = (m.key === 'time_ms') 
+                        ? (customBMetrics.compute_time_ms || customBMetrics.time_ms || customBMetrics.timeMs) 
+                        : customBMetrics[m.key];
+                    const d = computeMetricDelta(m.key, vA, valCustom);
+                    cells += `<td style="font-weight:bold; border-left: 2px solid #00e676; ${d.bgStyle}">${m.format(valCustom)}</td>`;
                 }
 
                 return `<tr><td><b>${m.name}</b></td>${cells}</tr>`;

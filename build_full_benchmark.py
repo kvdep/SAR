@@ -340,7 +340,7 @@ def compute_metrics(raw_lin: np.ndarray, filt_lin: np.ndarray, gt_lin: np.ndarra
 # 5. КОДИРОВАНИЕ РАСТРОВ В BASE64
 # =========================================================================
 
-def array_to_webp_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: str | None = None, quality: int = 75) -> str:
+def array_to_webp_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: str | None = None, quality: int = 70) -> str:
     norm = np.clip((arr - vmin) / (vmax - vmin + 1e-9), 0.0, 1.0)
     norm = np.nan_to_num(norm, nan=0.0)
     if cmap_name is None:
@@ -354,7 +354,7 @@ def array_to_webp_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: s
     img.save(buf, format="WEBP", quality=quality)
     return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
-def rgb_composite_webp_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray, quality: int = 75) -> str:
+def rgb_composite_webp_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray, quality: int = 70) -> str:
     r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
     g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
     b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
@@ -368,6 +368,178 @@ def rgb_composite_webp_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np
 array_to_png_base64 = array_to_webp_base64
 rgb_composite_base64 = rgb_composite_webp_base64
 
+def run_all_filters(cur_vv: np.ndarray, cur_vh: np.ndarray, models: dict[str, nn.Module], solver_ftv: JointFTVSARP) -> dict[str, tuple[str, np.ndarray, np.ndarray]]:
+    from sar_server import run_dl as run_dl_inference, run_rpca_ialm
+
+    f_boxcar = filter_boxcar_mean(cur_vv, w=5)
+    vh_boxcar = filter_boxcar_mean(cur_vh, w=5)
+    f_median = filter_median(cur_vv, w=5)
+    vh_median = filter_median(cur_vh, w=5)
+    f_lee = filter_lee(cur_vv, w=5, looks=4.4)
+    vh_lee = filter_lee(cur_vh, w=5, looks=4.4)
+    f_enh_lee = filter_enhanced_lee(cur_vv, w=5, looks=4.4)
+    vh_enh_lee = filter_enhanced_lee(cur_vh, w=5, looks=4.4)
+    f_kuan = filter_kuan(cur_vv, w=5, looks=4.4)
+    vh_kuan = filter_kuan(cur_vh, w=5, looks=4.4)
+    f_frost = filter_frost(cur_vv, w=5)
+    vh_frost = filter_frost(cur_vh, w=5)
+    f_enh_frost = filter_enhanced_frost(cur_vv, w=5, looks=4.4)
+    vh_enh_frost = filter_enhanced_frost(cur_vh, w=5, looks=4.4)
+    f_bilateral = filter_bilateral(cur_vv)
+    vh_bilateral = filter_bilateral(cur_vh)
+    f_gamma = filter_gamma_map(cur_vv, w=5, looks=4.4)
+    vh_gamma = filter_gamma_map(cur_vh, w=5, looks=4.4)
+
+    # Joint FTV-SARP
+    I_torch = torch.from_numpy(np.stack([cur_vv, cur_vh], axis=0)).unsqueeze(0).to(device)
+    with torch.no_grad():
+        R_ftv = solver_ftv.solve(I_torch, n_iter=25)
+    f_ftv = R_ftv[0, 0].cpu().numpy()
+    vh_ftv = R_ftv[0, 1].cpu().numpy()
+
+    # DL inference
+    f_resnet = run_dl_inference(cur_vv, models['resnet'])
+    vh_resnet = run_dl_inference(cur_vh, models['resnet'])
+
+    f_mer_dense = run_dl_inference(cur_vv, models['mer_dense'])
+    vh_mer_dense = run_dl_inference(cur_vh, models['mer_dense'])
+
+    f_mer_cbam = run_dl_inference(cur_vv, models['mer_cbam'])
+    vh_mer_cbam = run_dl_inference(cur_vh, models['mer_cbam'])
+
+    f_mer_res = run_dl_inference(cur_vv, models['mer_res'])
+    vh_mer_res = run_dl_inference(cur_vh, models['mer_res'])
+
+    f_mer_base = run_dl_inference(cur_vv, models['mer_base'])
+    vh_mer_base = run_dl_inference(cur_vh, models['mer_base'])
+
+    f_mer_blind = run_dl_inference(cur_vv, models['mer_blind'])
+    vh_mer_blind = run_dl_inference(cur_vh, models['mer_blind'])
+
+    f_restormer = run_dl_inference(cur_vv, models['restormer'])
+    vh_restormer = run_dl_inference(cur_vh, models['restormer'])
+
+    f_mer_gammamle = run_dl_inference(cur_vv, models['mer_gammamle'])
+    vh_mer_gammamle = run_dl_inference(cur_vh, models['mer_gammamle'])
+
+    f_mer_extremedeep = run_dl_inference(cur_vv, models['mer_extremedeep'])
+    vh_mer_extremedeep = run_dl_inference(cur_vh, models['mer_extremedeep'])
+
+    f_yolo26_s = run_dl_inference(cur_vv, models['yolo26_s'])
+    vh_yolo26_s = run_dl_inference(cur_vh, models['yolo26_s'])
+
+    f_yolo26_n = run_dl_inference(cur_vv, models['yolo26_n'])
+    vh_yolo26_n = run_dl_inference(cur_vh, models['yolo26_n'])
+
+    # Cascades
+    f_ftv_resnet = run_dl_inference(f_ftv, models['resnet'])
+    vh_ftv_resnet = run_dl_inference(vh_ftv, models['resnet'])
+
+    f_ftv_bilateral = filter_bilateral(f_ftv)
+    vh_ftv_bilateral = filter_bilateral(vh_ftv)
+
+    t_bil_vv = torch.from_numpy(f_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+    t_bil_vh = torch.from_numpy(vh_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+    t_bil_joint = torch.cat([t_bil_vv, t_bil_vh], dim=1)
+    with torch.no_grad():
+        R_bil_ftv = solver_ftv.solve(t_bil_joint, n_iter=15)
+    f_bil_ftv = R_bil_ftv[0, 0].cpu().numpy()
+    vh_bil_ftv = R_bil_ftv[0, 1].cpu().numpy()
+    f_bil_ftv_bil = filter_bilateral(f_bil_ftv)
+    vh_bil_ftv_bil = filter_bilateral(vh_bil_ftv)
+
+    # RPCA
+    L_vv, S_vv = run_rpca_ialm(cur_vv, max_iter=12)
+    L_vh, S_vh = run_rpca_ialm(cur_vh, max_iter=12)
+    S_vv_abs = np.maximum(np.abs(S_vv), 1e-6)
+    S_vh_abs = np.maximum(np.abs(S_vh), 1e-6)
+
+    return {
+        "raw": ("0. Входной сигнал со спеклом (Raw RTC)", cur_vv, cur_vh),
+        "boxcar": ("1. Mean / Boxcar 5x5", f_boxcar, vh_boxcar),
+        "median": ("2. Median 5x5", f_median, vh_median),
+        "lee": ("3. Классический Lee 5x5", f_lee, vh_lee),
+        "enh_lee": ("4. Enhanced Lee 5x5", f_enh_lee, vh_enh_lee),
+        "kuan": ("5. Kuan 5x5", f_kuan, vh_kuan),
+        "frost": ("6. Frost 5x5", f_frost, vh_frost),
+        "enh_frost": ("7. Enhanced Frost 5x5", f_enh_frost, vh_enh_frost),
+        "bilateral": ("8. Bilateral Filter", f_bilateral, vh_bilateral),
+        "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_gamma),
+        "ftv": ("10. Новый: Joint FTV-SARP (α=1.25)", f_ftv, vh_ftv),
+        "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_resnet),
+        "merlin": ("12. ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)", f_mer_dense, vh_mer_dense),
+        "merlin_dense": ("12a. ML: MERLIN Dense-Dilated (Без потери разрешения)", f_mer_dense, vh_mer_dense),
+        "merlin_cbam": ("12b. ML: MERLIN Dual-Attention (CBAM)", f_mer_cbam, vh_mer_cbam),
+        "merlin_res": ("12c. ML: MERLIN Deep Res-U-Net", f_mer_res, vh_mer_res),
+        "merlin_base": ("12d. ML: MERLIN U-Net Base (Dalsasso)", f_mer_base, vh_mer_base),
+        "merlin_blind": ("12e. ML: MERLIN Blind-Spot (Legacy Softplus)", f_mer_blind, vh_mer_blind),
+        "merlin_gammamle": ("12f. ML: MERLIN Gamma MLE (EPI 1.001, Moran 0.06)", f_mer_gammamle, vh_mer_gammamle),
+        "merlin_extremedeep": ("12g. ML: MERLIN Extreme-Deep 10L (1.14M пар.)", f_mer_extremedeep, vh_mer_extremedeep),
+        "restormer": ("13. ML: SAR-Restormer V2 (Overhaul, PSNR 43.25)", f_restormer, vh_restormer),
+        "yolo26_s": ("13a. 2026: YOLO26-Small (C3k2/DWConv, PSNR 41.8 дБ)", f_yolo26_s, vh_yolo26_s),
+        "yolo26_n": ("13b. 2026: YOLO26-Nano (Ультралегкая, 7.6k пар.)", f_yolo26_n, vh_yolo26_n),
+        "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
+        "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
+        "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_bil_ftv_bil),
+        "rpca": ("18. НИР: Robust PCA (Low-Rank L, IALM)", L_vv, L_vh),
+        "rpca_s": ("19. НИР: Robust PCA (Sparse S, цели и корабли)", S_vv_abs, S_vh_abs),
+    }
+
+def benchmark_scene_filter_times(cur_vv: np.ndarray, cur_vh: np.ndarray, models: dict[str, nn.Module], solver_ftv: JointFTVSARP, n_runs: int = 3) -> dict[str, float]:
+    from sar_server import run_dl as run_dl_inference, run_rpca_ialm
+    times = {}
+    times["raw"] = 0.0
+
+    def bench(fn, is_cuda=False):
+        fn()
+        if is_cuda and torch.cuda.is_available():
+            torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        for _ in range(n_runs):
+            fn()
+        if is_cuda and torch.cuda.is_available():
+            torch.cuda.synchronize()
+        t1 = time.perf_counter()
+        return ((t1 - t0) / n_runs) * 1000.0
+
+    times["boxcar"] = bench(lambda: (filter_boxcar_mean(cur_vv, 5), filter_boxcar_mean(cur_vh, 5)))
+    times["median"] = bench(lambda: (filter_median(cur_vv, 5), filter_median(cur_vh, 5)))
+    times["lee"] = bench(lambda: (filter_lee(cur_vv, 5), filter_lee(cur_vh, 5)))
+    times["enh_lee"] = bench(lambda: (filter_enhanced_lee(cur_vv, 5), filter_enhanced_lee(cur_vh, 5)))
+    times["kuan"] = bench(lambda: (filter_kuan(cur_vv, 5), filter_kuan(cur_vh, 5)))
+    times["frost"] = bench(lambda: (filter_frost(cur_vv, 5), filter_frost(cur_vh, 5)))
+    times["enh_frost"] = bench(lambda: (filter_enhanced_frost(cur_vv, 5), filter_enhanced_frost(cur_vh, 5)))
+    times["bilateral"] = bench(lambda: (filter_bilateral(cur_vv), filter_bilateral(cur_vh)))
+    times["gamma"] = bench(lambda: (filter_gamma_map(cur_vv, 5), filter_gamma_map(cur_vh, 5)))
+
+    def run_ftv():
+        I_t = torch.from_numpy(np.stack([cur_vv, cur_vh], axis=0)).unsqueeze(0).to(device)
+        with torch.no_grad():
+            _ = solver_ftv.solve(I_t, n_iter=25)
+    times["ftv"] = bench(run_ftv, is_cuda=True)
+
+    times["resnet"] = bench(lambda: (run_dl_inference(cur_vv, models['resnet']), run_dl_inference(cur_vh, models['resnet'])), is_cuda=True)
+    times["merlin_dense"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_dense']), run_dl_inference(cur_vh, models['mer_dense'])), is_cuda=True)
+    times["merlin"] = times["merlin_dense"]
+    times["merlin_cbam"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_cbam']), run_dl_inference(cur_vh, models['mer_cbam'])), is_cuda=True)
+    times["merlin_res"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_res']), run_dl_inference(cur_vh, models['mer_res'])), is_cuda=True)
+    times["merlin_base"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_base']), run_dl_inference(cur_vh, models['mer_base'])), is_cuda=True)
+    times["merlin_blind"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_blind']), run_dl_inference(cur_vh, models['mer_blind'])), is_cuda=True)
+    times["merlin_gammamle"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_gammamle']), run_dl_inference(cur_vh, models['mer_gammamle'])), is_cuda=True)
+    times["merlin_extremedeep"] = bench(lambda: (run_dl_inference(cur_vv, models['mer_extremedeep']), run_dl_inference(cur_vh, models['mer_extremedeep'])), is_cuda=True)
+    times["restormer"] = bench(lambda: (run_dl_inference(cur_vv, models['restormer']), run_dl_inference(cur_vh, models['restormer'])), is_cuda=True)
+    times["yolo26_s"] = bench(lambda: (run_dl_inference(cur_vv, models['yolo26_s']), run_dl_inference(cur_vh, models['yolo26_s'])), is_cuda=True)
+    times["yolo26_n"] = bench(lambda: (run_dl_inference(cur_vv, models['yolo26_n']), run_dl_inference(cur_vh, models['yolo26_n'])), is_cuda=True)
+
+    times["ftv_resnet"] = times["ftv"] + times["resnet"]
+    times["ftv_bilateral"] = times["ftv"] + times["bilateral"]
+    times["bil_ftv_bil"] = times["bilateral"] * 2.0 + times["ftv"]
+
+    times["rpca"] = bench(lambda: (run_rpca_ialm(cur_vv, max_iter=12), run_rpca_ialm(cur_vh, max_iter=12)))
+    times["rpca_s"] = times["rpca"]
+    times["multitemp_gt"] = 0.0
+    return times
+
 # =========================================================================
 # 6. ОСНОВНОЙ ЦИКЛ ОБРАБОТКИ
 # =========================================================================
@@ -376,6 +548,8 @@ def main():
     print("="*70)
     print("СБОРКА КОМПЛЕКСНОГО АНАЛИЗАТОРА: 8 СЦЕН x 16 ФИЛЬТРОВ + ЭТАЛОНЫ arXiv")
     print("="*70)
+
+    from sar_server import run_dl as run_dl_inference, run_rpca_ialm
 
     weights_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\weights"
     model_resnet = SAR_ResNet(in_channels=1, num_features=64, num_layers=17).to(device)
@@ -436,11 +610,21 @@ def main():
 
     solver_ftv = JointFTVSARP(alpha=1.25, K=11, device=device)
 
-    from sar_server import run_dl as run_dl_inference
+    models = {
+        "resnet": model_resnet,
+        "mer_dense": model_mer_dense,
+        "mer_cbam": model_mer_cbam,
+        "mer_res": model_mer_res,
+        "mer_base": model_mer_base,
+        "mer_blind": model_mer_blind,
+        "mer_gammamle": model_mer_gammamle,
+        "mer_extremedeep": model_mer_extremedeep,
+        "restormer": model_restormer,
+        "yolo26_s": model_yolo26_s,
+        "yolo26_n": model_yolo26_n,
+    }
 
     app_data = {}
-
-    from sar_server import run_rpca_ialm
 
     # ---------------------------------------------------------------------
     # ОБРАБОТКА 8 ГЕОПРИВЯЗАННЫХ СЦЕН
@@ -449,7 +633,6 @@ def main():
         print(f"\n[INFO] Обработка полигона: {sc['title']}...")
 
         if "npz_file" in sc and os.path.exists(sc["npz_file"]):
-            # Прямая загрузка истинных однопроходных данных со спеклом
             npz_data = np.load(sc["npz_file"])
             vv_raw = npz_data["vv"]
             vh_raw = npz_data["vh"]
@@ -491,178 +674,56 @@ def main():
                 os.remove(tmp_nc)
             bbox = sc["bbox"]
 
-        # Выполнение симметричной фильтрации обоих каналов VV и VH
-        print("  -> Запуск фильтров (w=5, симметрично VV и VH)...")
-        f_boxcar = filter_boxcar_mean(vv_raw, w=5)
-        vh_boxcar = filter_boxcar_mean(vh_raw, w=5)
+        # 1. Замер аппаратного времени выполнения пайплайнов на текущем полигоне
+        print("  -> Замер аппаратного времени выполнения (среднее за 3 прохода с синхронизацией GPU)...")
+        filter_times = benchmark_scene_filter_times(vv_raw, vh_raw, models, solver_ftv, n_runs=3)
 
-        f_median = filter_median(vv_raw, w=5)
-        vh_median = filter_median(vh_raw, w=5)
-
-        f_lee = filter_lee(vv_raw, w=5, looks=4.4)
-        vh_lee = filter_lee(vh_raw, w=5, looks=4.4)
-
-        f_enh_lee = filter_enhanced_lee(vv_raw, w=5, looks=4.4)
-        vh_enh_lee = filter_enhanced_lee(vh_raw, w=5, looks=4.4)
-
-        f_kuan = filter_kuan(vv_raw, w=5, looks=4.4)
-        vh_kuan = filter_kuan(vh_raw, w=5, looks=4.4)
-
-        f_frost = filter_frost(vv_raw, w=5)
-        vh_frost = filter_frost(vh_raw, w=5)
-
-        f_enh_frost = filter_enhanced_frost(vv_raw, w=5, looks=4.4)
-        vh_enh_frost = filter_enhanced_frost(vh_raw, w=5, looks=4.4)
-
-        f_bilateral = filter_bilateral(vv_raw)
-        vh_bilateral = filter_bilateral(vh_raw)
-
-        f_gamma = filter_gamma_map(vv_raw, w=5, looks=4.4)
-        vh_gamma = filter_gamma_map(vh_raw, w=5, looks=4.4)
-
-        # Joint FTV-SARP
-        I_torch = torch.from_numpy(np.stack([vv_raw, vh_raw], axis=0)).unsqueeze(0).to(device)
-        with torch.no_grad():
-            R_ftv = solver_ftv.solve(I_torch, n_iter=25)
-        f_ftv = R_ftv[0, 0].cpu().numpy()
-        vh_ftv = R_ftv[0, 1].cpu().numpy()
-
-        # DL inference (симметрично для обоих каналов)
-        f_resnet = run_dl_inference(vv_raw, model_resnet)
-        vh_resnet = run_dl_inference(vh_raw, model_resnet)
-
-        f_mer_dense = run_dl_inference(vv_raw, model_mer_dense)
-        vh_mer_dense = run_dl_inference(vh_raw, model_mer_dense)
-
-        f_mer_cbam = run_dl_inference(vv_raw, model_mer_cbam)
-        vh_mer_cbam = run_dl_inference(vh_raw, model_mer_cbam)
-
-        f_mer_res = run_dl_inference(vv_raw, model_mer_res)
-        vh_mer_res = run_dl_inference(vh_raw, model_mer_res)
-
-        f_mer_base = run_dl_inference(vv_raw, model_mer_base)
-        vh_mer_base = run_dl_inference(vh_raw, model_mer_base)
-
-        f_mer_blind = run_dl_inference(vv_raw, model_mer_blind)
-        vh_mer_blind = run_dl_inference(vh_raw, model_mer_blind)
-
-        f_restormer = run_dl_inference(vv_raw, model_restormer)
-        vh_restormer = run_dl_inference(vh_raw, model_restormer)
-
-        f_mer_gammamle = run_dl_inference(vv_raw, model_mer_gammamle)
-        vh_mer_gammamle = run_dl_inference(vh_raw, model_mer_gammamle)
-
-        f_mer_extremedeep = run_dl_inference(vv_raw, model_mer_extremedeep)
-        vh_mer_extremedeep = run_dl_inference(vh_raw, model_mer_extremedeep)
-
-        f_yolo26_s = run_dl_inference(vv_raw, model_yolo26_s)
-        vh_yolo26_s = run_dl_inference(vh_raw, model_yolo26_s)
-
-        f_yolo26_n = run_dl_inference(vv_raw, model_yolo26_n)
-        vh_yolo26_n = run_dl_inference(vh_raw, model_yolo26_n)
-
-        # Каскадные конвейеры из сетки 1884 тестов
-        f_ftv_resnet = run_dl_inference(f_ftv, model_resnet)
-        vh_ftv_resnet = run_dl_inference(vh_ftv, model_resnet)
-
-        f_ftv_bilateral = filter_bilateral(f_ftv)
-        vh_ftv_bilateral = filter_bilateral(vh_ftv)
-
-        t_bil_vv = torch.from_numpy(f_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
-        t_bil_vh = torch.from_numpy(vh_bilateral.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
-        t_bil_joint = torch.cat([t_bil_vv, t_bil_vh], dim=1)
-        with torch.no_grad():
-            R_bil_ftv = solver_ftv.solve(t_bil_joint, n_iter=15)
-        f_bil_ftv = R_bil_ftv[0, 0].cpu().numpy()
-        vh_bil_ftv = R_bil_ftv[0, 1].cpu().numpy()
-        f_bil_ftv_bil = filter_bilateral(f_bil_ftv)
-        vh_bil_ftv_bil = filter_bilateral(vh_bil_ftv)
-
-        # Методы НИР: Robust PCA
-        L_vv, S_vv = run_rpca_ialm(vv_raw, max_iter=12)
-        L_vh, S_vh = run_rpca_ialm(vh_raw, max_iter=12)
-        S_vv_abs = np.maximum(np.abs(S_vv), 1e-6)
-        S_vh_abs = np.maximum(np.abs(S_vh), 1e-6)
-
-        filter_outputs = {
-            "raw": ("0. Входной сигнал со спеклом (Raw RTC)", vv_raw, vh_raw),
-            "boxcar": ("1. Mean / Boxcar 5x5", f_boxcar, vh_boxcar),
-            "median": ("2. Median 5x5", f_median, vh_median),
-            "lee": ("3. Классический Lee 5x5", f_lee, vh_lee),
-            "enh_lee": ("4. Enhanced Lee 5x5", f_enh_lee, vh_enh_lee),
-            "kuan": ("5. Kuan 5x5", f_kuan, vh_kuan),
-            "frost": ("6. Frost 5x5", f_frost, vh_frost),
-            "enh_frost": ("7. Enhanced Frost 5x5", f_enh_frost, vh_enh_frost),
-            "bilateral": ("8. Bilateral Filter", f_bilateral, vh_bilateral),
-            "gamma": ("9. Gamma MAP 5x5", f_gamma, vh_gamma),
-            "ftv": ("10. Новый: Joint FTV-SARP (α=1.25)", f_ftv, vh_ftv),
-            "resnet": ("11. ML: SAR-ResNet (Vitale)", f_resnet, vh_resnet),
-            "merlin": ("12. ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)", f_mer_dense, vh_mer_dense),
-            "merlin_dense": ("12a. ML: MERLIN Dense-Dilated (Без потери разрешения)", f_mer_dense, vh_mer_dense),
-            "merlin_cbam": ("12b. ML: MERLIN Dual-Attention (CBAM)", f_mer_cbam, vh_mer_cbam),
-            "merlin_res": ("12c. ML: MERLIN Deep Res-U-Net", f_mer_res, vh_mer_res),
-            "merlin_base": ("12d. ML: MERLIN U-Net Base (Dalsasso)", f_mer_base, vh_mer_base),
-            "merlin_blind": ("12e. ML: MERLIN Blind-Spot (Legacy Softplus)", f_mer_blind, vh_mer_blind),
-            "merlin_gammamle": ("12f. ML: MERLIN Gamma MLE (EPI 1.001, Moran 0.06)", f_mer_gammamle, vh_mer_gammamle),
-            "merlin_extremedeep": ("12g. ML: MERLIN Extreme-Deep 10L (1.14M пар.)", f_mer_extremedeep, vh_mer_extremedeep),
-            "restormer": ("13. ML: SAR-Restormer V2 (Overhaul, PSNR 43.25)", f_restormer, vh_restormer),
-            "yolo26_s": ("13a. 2026: YOLO26-Small (C3k2/DWConv, PSNR 41.8 дБ)", f_yolo26_s, vh_yolo26_s),
-            "yolo26_n": ("13b. 2026: YOLO26-Nano (Ультралегкая, 7.6k пар.)", f_yolo26_n, vh_yolo26_n),
-            "ftv_resnet": ("14. Каскад (2 эт.): FTV-SARP → SAR-ResNet (Парето)", f_ftv_resnet, vh_ftv_resnet),
-            "ftv_bilateral": ("15. Каскад (2 эт.): FTV-SARP → Bilateral", f_ftv_bilateral, vh_ftv_bilateral),
-            "bil_ftv_bil": ("16. Каскад (3 эт.): Bilateral → FTV → Bilateral", f_bil_ftv_bil, vh_bil_ftv_bil),
-            "rpca": ("18. НИР: Robust PCA (Low-Rank L, IALM)", L_vv, L_vh),
-            "rpca_s": ("19. НИР: Robust PCA (Sparse S, цели и корабли)", S_vv_abs, S_vh_abs),
-        }
-
-        if has_gt:
-            filter_outputs["multitemp_gt"] = ("17. GEE Multi-Temporal Ground Truth (Эталон)", vv_gt, vh_gt)
-
-        pipe_dict = {}
-        for p_id, (p_name, out_vv, out_vh) in filter_outputs.items():
-            vv_db = 10.0 * np.log10(np.maximum(out_vv, 1e-6))
-            vh_db = 10.0 * np.log10(np.maximum(out_vh, 1e-6))
-            ratio_db = vv_db - vh_db
-            res_ratio = vv_raw / np.maximum(out_vv, 1e-8) if p_id != "raw" else np.ones_like(vv_raw)
-
-            m = compute_metrics(vv_raw, out_vv, gt_lin=vv_gt, looks=4.4)
-
-            pipe_dict[p_id] = {
-                "name": p_name,
-                "metrics": m,
-                "layers": {
-                    "vv": array_to_png_base64(vv_db, -25.0, 0.0),
-                    "vh": array_to_png_base64(vh_db, -32.0, -8.0),
-                    "ratio": array_to_png_base64(ratio_db, 0.0, 20.0, cmap_name="viridis"),
-                    "rgb": rgb_composite_base64(vv_db, vh_db, ratio_db),
-                    "res_ratio": array_to_png_base64(res_ratio, 0.0, 2.5, cmap_name="coolwarm"),
-                }
-            }
-
-        # Предварительное кодирование сезонных срезов Sentinel-1
+        # 2. Обработка всех 4 сезонов для полигона
         seasons_path = os.path.join(r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache", f"seasons_{key}.npz")
+        seasons_npz = np.load(seasons_path) if os.path.exists(seasons_path) else None
+
         seasons_dict = {}
-        if os.path.exists(seasons_path):
-            s_data = np.load(seasons_path)
-            for s_name in ["spring", "summer", "autumn", "winter"]:
-                k_vv = f"{s_name}_vv"
-                k_vh = f"{s_name}_vh"
-                if k_vv in s_data and k_vh in s_data:
-                    s_vv = s_data[k_vv]
-                    s_vh = s_data[k_vh]
-                    # Масштабирование до размерности эталонного полигона
-                    if s_vv.shape != vv_raw.shape:
-                        s_vv = np.array(Image.fromarray(s_vv).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
-                        s_vh = np.array(Image.fromarray(s_vh).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
-                    s_vv_db = 10.0 * np.log10(np.maximum(s_vv, 1e-6))
-                    s_vh_db = 10.0 * np.log10(np.maximum(s_vh, 1e-6))
-                    s_rat = s_vv_db - s_vh_db
-                    seasons_dict[s_name] = {
-                        "vv": array_to_webp_base64(s_vv_db, -25.0, 0.0),
-                        "vh": array_to_webp_base64(s_vh_db, -32.0, -8.0),
-                        "ratio": array_to_webp_base64(s_rat, 0.0, 20.0, cmap_name="viridis"),
-                        "rgb": rgb_composite_webp_base64(s_vv_db, s_vh_db, s_rat),
+        for s_name in ["spring", "summer", "autumn", "winter"]:
+            print(f"  -> Фильтрация сезона '{s_name}' (полный набор 28+ методов)...")
+            if s_name == "spring":
+                s_vv = vv_raw
+                s_vh = vh_raw
+            elif seasons_npz is not None and f"{s_name}_vv" in seasons_npz and f"{s_name}_vh" in seasons_npz:
+                s_vv = seasons_npz[f"{s_name}_vv"]
+                s_vh = seasons_npz[f"{s_name}_vh"]
+                if s_vv.shape != vv_raw.shape:
+                    s_vv = np.array(Image.fromarray(s_vv).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
+                    s_vh = np.array(Image.fromarray(s_vh).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
+            else:
+                s_vv = vv_raw
+                s_vh = vh_raw
+
+            outputs = run_all_filters(s_vv, s_vh, models, solver_ftv)
+            if s_name == "spring" and has_gt:
+                outputs["multitemp_gt"] = ("17. GEE Multi-Temporal Ground Truth (Эталон)", vv_gt, vh_gt)
+
+            s_pipe_dict = {}
+            for p_id, (p_name, out_vv, out_vh) in outputs.items():
+                vv_db = 10.0 * np.log10(np.maximum(out_vv, 1e-6))
+                vh_db = 10.0 * np.log10(np.maximum(out_vh, 1e-6))
+                ratio_db = vv_db - vh_db
+                res_ratio = s_vv / np.maximum(out_vv, 1e-8) if p_id != "raw" else np.ones_like(s_vv)
+
+                m = compute_metrics(s_vv, out_vv, gt_lin=(vv_gt if (s_name == "spring" and has_gt) else None), looks=4.4)
+                m["time_ms"] = round(filter_times.get(p_id, 0.0), 2)
+
+                s_pipe_dict[p_id] = {
+                    "name": p_name,
+                    "metrics": m,
+                    "layers": {
+                        "vv": array_to_webp_base64(vv_db, -25.0, 0.0, quality=70),
+                        "vh": array_to_webp_base64(vh_db, -32.0, -8.0, quality=70),
+                        "ratio": array_to_webp_base64(ratio_db, 0.0, 20.0, cmap_name="viridis", quality=70),
+                        "rgb": rgb_composite_webp_base64(vv_db, vh_db, ratio_db, quality=70),
+                        "res_ratio": array_to_webp_base64(res_ratio, 0.0, 2.5, cmap_name="coolwarm", quality=70),
                     }
+                }
+            seasons_dict[s_name] = s_pipe_dict
 
         leaflet_bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
         app_data[key] = {
@@ -672,10 +733,10 @@ def main():
             "zoom": sc["zoom"],
             "bounds": leaflet_bounds,
             "shape": list(vv_raw.shape),
-            "pipelines": pipe_dict,
+            "pipelines": seasons_dict["spring"],
             "seasons": seasons_dict,
         }
-        print(f"  [ГОТОВО] Полигон {key}: {len(pipe_dict)} фильтров + {len(seasons_dict)} сезонов сгенерировано.")
+        print(f"  [ГОТОВО] Полигон {key}: {len(seasons_dict['spring'])} фильтров x 4 сезона сгенерировано.")
 
     # ---------------------------------------------------------------------
     # ОБРАБОТКА ЭТАЛОНОВ ИЗ СТАТЕЙ (ПОЛНЫЙ ПЕРЕБОР ВСЕХ 14-17 МЕТОДОВ)
@@ -904,6 +965,12 @@ def main():
             "metrics": compute_metrics(im_in, np.maximum(np.abs(S_bench), 1e-6), gt_lin=im_gt, looks=4.4)
         }
 
+        # Замер аппаратного времени выполнения методов на эталонном изображении
+        bench_times = benchmark_scene_filter_times(im_in, im_in, models, solver_ftv, n_runs=2)
+        for pk in pairs_dict:
+            if "metrics" in pairs_dict[pk] and isinstance(pairs_dict[pk]["metrics"], dict):
+                pairs_dict[pk]["metrics"]["time_ms"] = round(bench_times.get(pk, 0.0), 2)
+
         # Добавляем результаты из самой статьи
         for p_key, (p_label, p_file) in paper_outputs.items():
             full_p = os.path.join(paper_results_dir, p_file)
@@ -912,6 +979,7 @@ def main():
                 p_arr = np.array(p_im_u8).astype(np.float32) / 255.0
                 p_gt_arg = im_gt if (im_gt is not None and im_gt.shape == p_arr.shape) else None
                 m_paper = compute_metrics(im_in, p_arr, gt_lin=p_gt_arg, looks=4.4)
+                m_paper["time_ms"] = 0.0
                 pairs_dict[p_key] = {
                     "name": p_label,
                     "img": load_b64(p_file),
@@ -920,10 +988,12 @@ def main():
 
         # Если GT есть и еще не добавлен
         if gt_fname and "gt" not in pairs_dict:
+            m_gt = compute_metrics(im_in, im_gt, gt_lin=im_gt, looks=4.4) if im_gt is not None else {}
+            m_gt["time_ms"] = 0.0
             pairs_dict["gt"] = {
                 "name": "Эталон: Ground Truth",
                 "img": load_b64(gt_fname),
-                "metrics": compute_metrics(im_in, im_gt, gt_lin=im_gt, looks=4.4) if im_gt is not None else {}
+                "metrics": m_gt
             }
 
         return {
