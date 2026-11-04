@@ -340,30 +340,33 @@ def compute_metrics(raw_lin: np.ndarray, filt_lin: np.ndarray, gt_lin: np.ndarra
 # 5. КОДИРОВАНИЕ РАСТРОВ В BASE64
 # =========================================================================
 
-def array_to_png_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: str | None = None) -> str:
+def array_to_webp_base64(arr: np.ndarray, vmin: float, vmax: float, cmap_name: str | None = None, quality: int = 75) -> str:
     norm = np.clip((arr - vmin) / (vmax - vmin + 1e-9), 0.0, 1.0)
     norm = np.nan_to_num(norm, nan=0.0)
     if cmap_name is None:
         gray = (norm * 255).astype(np.uint8)
-        img = Image.fromarray(gray, mode="L").convert("RGBA")
+        img = Image.fromarray(gray, mode="L")
     else:
-        cmap = cm.get_cmap(cmap_name)
+        cmap = cm.get_cmap(cmap_name) if hasattr(cm, 'get_cmap') else cm.colormaps[cmap_name]
         rgba = (cmap(norm) * 255).astype(np.uint8)
         img = Image.fromarray(rgba, mode="RGBA")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+    img.save(buf, format="WEBP", quality=quality)
+    return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
-def rgb_composite_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray) -> str:
+def rgb_composite_webp_base64(vv_db: np.ndarray, vh_db: np.ndarray, ratio_db: np.ndarray, quality: int = 75) -> str:
     r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
     g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
     b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
     rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     rgb_8u = (rgb * 255.0).astype(np.uint8)
-    img = Image.fromarray(rgb_8u, mode="RGB").convert("RGBA")
+    img = Image.fromarray(rgb_8u, mode="RGB")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+    img.save(buf, format="WEBP", quality=quality)
+    return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+array_to_png_base64 = array_to_webp_base64
+rgb_composite_base64 = rgb_composite_webp_base64
 
 # =========================================================================
 # 6. ОСНОВНОЙ ЦИКЛ ОБРАБОТКИ
@@ -636,6 +639,31 @@ def main():
                 }
             }
 
+        # Предварительное кодирование сезонных срезов Sentinel-1
+        seasons_path = os.path.join(r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache", f"seasons_{key}.npz")
+        seasons_dict = {}
+        if os.path.exists(seasons_path):
+            s_data = np.load(seasons_path)
+            for s_name in ["spring", "summer", "autumn", "winter"]:
+                k_vv = f"{s_name}_vv"
+                k_vh = f"{s_name}_vh"
+                if k_vv in s_data and k_vh in s_data:
+                    s_vv = s_data[k_vv]
+                    s_vh = s_data[k_vh]
+                    # Масштабирование до размерности эталонного полигона
+                    if s_vv.shape != vv_raw.shape:
+                        s_vv = np.array(Image.fromarray(s_vv).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
+                        s_vh = np.array(Image.fromarray(s_vh).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
+                    s_vv_db = 10.0 * np.log10(np.maximum(s_vv, 1e-6))
+                    s_vh_db = 10.0 * np.log10(np.maximum(s_vh, 1e-6))
+                    s_rat = s_vv_db - s_vh_db
+                    seasons_dict[s_name] = {
+                        "vv": array_to_webp_base64(s_vv_db, -25.0, 0.0),
+                        "vh": array_to_webp_base64(s_vh_db, -32.0, -8.0),
+                        "ratio": array_to_webp_base64(s_rat, 0.0, 20.0, cmap_name="viridis"),
+                        "rgb": rgb_composite_webp_base64(s_vv_db, s_vh_db, s_rat),
+                    }
+
         leaflet_bounds = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]]
         app_data[key] = {
             "title": sc["title"],
@@ -645,8 +673,9 @@ def main():
             "bounds": leaflet_bounds,
             "shape": list(vv_raw.shape),
             "pipelines": pipe_dict,
+            "seasons": seasons_dict,
         }
-        print(f"  [ГОТОВО] Полигон {key}: {len(pipe_dict)} фильтров сгенерировано.")
+        print(f"  [ГОТОВО] Полигон {key}: {len(pipe_dict)} фильтров + {len(seasons_dict)} сезонов сгенерировано.")
 
     # ---------------------------------------------------------------------
     # ОБРАБОТКА ЭТАЛОНОВ ИЗ СТАТЕЙ (ПОЛНЫЙ ПЕРЕБОР ВСЕХ 14-17 МЕТОДОВ)
@@ -657,9 +686,15 @@ def main():
     def load_b64(fname: str) -> str:
         p = os.path.join(paper_results_dir, fname)
         if os.path.exists(p):
-            with open(p, "rb") as f:
-                ext = "jpeg" if fname.endswith(".jpeg") or fname.endswith(".jpg") else "png"
-                return f"data:image/{ext};base64," + base64.b64encode(f.read()).decode("utf-8")
+            try:
+                with Image.open(p) as img:
+                    buf = io.BytesIO()
+                    img.save(buf, format="WEBP", quality=75)
+                    return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+            except Exception:
+                with open(p, "rb") as f:
+                    ext = "jpeg" if fname.endswith(".jpeg") or fname.endswith(".jpg") else "png"
+                    return f"data:image/{ext};base64," + base64.b64encode(f.read()).decode("ascii")
         return ""
 
     def process_bench_case(bench_id: str, paper_name: str, title: str, desc: str, strip_fname: str,
@@ -682,8 +717,8 @@ def main():
             u8 = (norm * 255.0).astype(np.uint8)
             img = Image.fromarray(u8, mode="L")
             buf = io.BytesIO()
-            img.save(buf, format="PNG")
-            return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+            img.save(buf, format="WEBP", quality=75)
+            return "data:image/webp;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
         # 1. Классические фильтры
         f_boxcar = filter_boxcar_mean(im_in, w=5)

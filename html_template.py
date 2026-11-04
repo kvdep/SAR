@@ -1212,12 +1212,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 layer: currentLayer
             };
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1200);
+
             try {
                 const res = await fetch('http://localhost:8080/api/pipeline', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(reqBody)
+                    body: JSON.stringify(reqBody),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 if (data.status !== 'ok') throw new Error(data.message || "Ошибка вычисления");
@@ -1273,12 +1278,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 stages: benchCustomStages.map(s => ({ op: s.op, kwargs: s.kwargs }))
             };
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1200);
+
             try {
                 const res = await fetch('http://localhost:8080/api/pipeline', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(reqBody)
+                    body: JSON.stringify(reqBody),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 if (!res.ok) throw new Error("HTTP " + res.status);
                 const data = await res.json();
                 if (data.status !== 'ok') throw new Error(data.message || "Ошибка вычисления");
@@ -1635,77 +1645,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             currentSeason = newSeason;
             updateBasemapTileLayer();
             if (currentMode === 'gis') {
-                await updateSeasonalLayers();
+                updateLayers();
             }
         }
 
         async function updateSeasonalLayers() {
-            if (currentSeason === 'spring' && bMode === 'preset') {
-                seasonalAImageUrl = null;
-                seasonalAMetrics = null;
-                updateLayers();
-                return;
-            }
-
-            try {
-                const stagesA = pipeKeyToStages(currentPipeA);
-                const resA = await fetch('http://localhost:8080/api/pipeline', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        mode: "gis",
-                        target_id: currentQuad,
-                        season: currentSeason,
-                        stages: stagesA,
-                        layer: currentLayer
-                    })
-                });
-                if (resA.ok) {
-                    const dataA = await resA.json();
-                    if (dataA.status === 'ok') {
-                        seasonalAImageUrl = dataA.img;
-                        seasonalAMetrics = dataA.metrics;
-                    }
-                }
-            } catch (err) {
-                console.warn("[SAR] Ошибка загрузки сезонного слоя A:", err);
-            }
-
-            if (bMode === 'custom') {
-                runCustomPipeline();
-            } else {
-                try {
-                    const stagesB = pipeKeyToStages(currentPipeB);
-                    const resB = await fetch('http://localhost:8080/api/pipeline', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            mode: "gis",
-                            target_id: currentQuad,
-                            season: currentSeason,
-                            stages: stagesB,
-                            layer: currentLayer
-                        })
-                    });
-                    if (resB.ok) {
-                        const dataB = await resB.json();
-                        if (dataB.status === 'ok') {
-                            customBImageUrl = dataB.img;
-                            customBMetrics = dataB.metrics;
-                            isCustomBActive = true;
-                        }
-                    }
-                } catch (err) {
-                    console.warn("[SAR] Ошибка загрузки сезонного слоя B:", err);
-                }
-                updateLayers();
-            }
+            updateLayers();
         }
 
         function updateLayers() {
             const q = DATA[currentQuad];
             const pipeA = q.pipelines[currentPipeA] || q.pipelines[Object.keys(q.pipelines)[0]];
-            const urlA = (seasonalAImageUrl && currentSeason !== 'spring') ? seasonalAImageUrl : (pipeA.layers[currentLayer] || pipeA.layers['rgb']);
+
+            let urlA = "";
+            if (currentSeason !== 'spring' && q.seasons && q.seasons[currentSeason]) {
+                const sObj = q.seasons[currentSeason];
+                urlA = sObj[currentLayer] || sObj['rgb'] || pipeA.layers[currentLayer] || pipeA.layers['rgb'];
+            } else {
+                urlA = (seasonalAImageUrl && currentSeason !== 'spring') ? seasonalAImageUrl : (pipeA.layers[currentLayer] || pipeA.layers['rgb']);
+            }
 
             let urlB = "";
             let labelB = "";
@@ -1820,8 +1778,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (statusBox) statusBox.style.display = 'none';
             if (bMode === 'custom') {
                 runCustomPipeline();
-            } else if (currentSeason !== 'spring') {
-                updateSeasonalLayers();
             } else {
                 updateLayers();
             }
@@ -1835,22 +1791,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         document.getElementById('pipe-a-select').addEventListener('change', (e) => {
             currentPipeA = e.target.value;
-            if (currentSeason !== 'spring') {
-                updateSeasonalLayers();
-            } else {
-                seasonalAImageUrl = null;
-                updateLayers();
-            }
+            seasonalAImageUrl = null;
+            updateLayers();
         });
 
         document.getElementById('pipe-b-select').addEventListener('change', (e) => {
             currentPipeB = e.target.value;
             isCustomBActive = false;
-            if (currentSeason !== 'spring') {
-                updateSeasonalLayers();
-            } else {
-                updateLayers();
-            }
+            updateLayers();
         });
 
         document.querySelectorAll('#layer-group .radio-btn').forEach(btn => {
@@ -1858,12 +1806,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 document.querySelectorAll('#layer-group .radio-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentLayer = btn.getAttribute('data-layer');
-                if (isCustomBActive || currentSeason !== 'spring') {
-                    if (bMode === 'custom') {
-                        runCustomPipeline();
-                    } else {
-                        updateSeasonalLayers();
-                    }
+                if (bMode === 'custom' && isCustomBActive) {
+                    runCustomPipeline();
                 } else {
                     updateLayers();
                 }
