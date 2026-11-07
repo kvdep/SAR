@@ -455,12 +455,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 </select>
                 <div id="basemap-date-badge" style="font-size: 0.70rem; color: #80cbc4; margin-bottom: 8px;">📅 Дата оптической подложки: 2023-04-15 (Синхронизировано с сезоном)</div>
 
-                <div style="font-size: 0.78rem; color: #9fa8da; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                    <span>Прозрачность слоя SAR:</span>
-                    <span id="sar-opacity-val" style="color: #69f0ae; font-weight: bold;">100%</span>
-                </div>
-                <input type="range" id="sar-opacity-slider" min="10" max="100" value="100" style="width: 100%; margin-bottom: 8px;" oninput="onSarOpacityChange(this.value)">
-
                 <div id="quadrant-desc" class="desc-box"></div>
             </div>
 
@@ -712,7 +706,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         let currentPipeA = "raw";
         let currentPipeB = "gamma";
         let currentLayer = "rgb";
-        let currentOpacity = 1.0;
         let splitPct = 50.0;
 
         let seasonalAImageUrl = null;
@@ -874,9 +867,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             updateBasemapTileLayer();
         }
 
-        function onSarOpacityChange(val) {
+        function setSarOpacity(val) {
             currentSarOpacity = parseFloat(val) / 100.0;
-            const label = document.getElementById('sar-opacity-val');
+            const label = document.getElementById('opacity-val');
             if (label) label.innerText = `${val}%`;
             if (overlayA) overlayA.setOpacity(currentSarOpacity);
             if (overlayB) overlayB.setOpacity(currentSarOpacity);
@@ -1231,7 +1224,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             };
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1200);
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
 
             try {
                 const res = await fetch('http://localhost:8080/api/pipeline', {
@@ -1257,9 +1250,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${stageNames}`;
                 updateLayers();
             } catch (err) {
-                console.warn("[SAR] Сервер localhost:8080 недоступен, переключение на локальный JS движок:", err);
-                statusText.innerText = `⏳ Выполнение в браузере (JS Engine)...`;
-                statusBackend.innerText = "Клиентский вычислительный движок";
+                console.warn("[SAR] Сервер localhost:8080 недоступен:", err);
+                const clientOnly = ["BXC", "MED", "LEE"];
+                const requiresServer = customStages.some(s => {
+                    const op = (typeof s === 'string' ? s : (s && s.op ? s.op : '')).toUpperCase();
+                    return !clientOnly.includes(op);
+                });
+
+                if (requiresServer) {
+                    statusText.innerText = `❌ Сервер sar_server.py не запущен`;
+                    statusBackend.innerHTML = `<span style="color:#ff5252; font-weight: bold;">Ошибка:</span> Алгоритм <b>${stageNames}</b> требует Python/PyTorch бэкенд на GPU.<br>Запустите сервер в терминале: <code>python "HTML Визуализация/код/sar_server.py"</code>`;
+                    return;
+                }
+
+                statusText.innerText = `⏳ Выполнение в браузере (JS Canvas)...`;
+                statusBackend.innerText = "Клиентский пространственный фильтр (Canvas)";
 
                 try {
                     const jsRes = await executeClientSidePipeline(customStages, currentQuad, currentLayer);
@@ -1267,7 +1272,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     customBMetrics = jsRes.metrics;
                     isCustomBActive = true;
                     statusText.innerText = `✓ Вычислено в браузере за ${jsRes.timeMs} мс`;
-                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${stageNames}`;
+                    statusBackend.innerText = `Движок: JS Canvas (локальный) | Каскад: ${stageNames}`;
                     updateLayers();
                 } catch (clientErr) {
                     statusText.innerText = `❌ Ошибка: ${clientErr.message}`;
@@ -1297,7 +1302,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             };
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1200);
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
 
             try {
                 const res = await fetch('http://localhost:8080/api/pipeline', {
@@ -1323,9 +1328,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 statusBackend.innerText = `Вычислитель: NVIDIA GeForce RTX 3080 (CUDA) | Каскад: ${stageNames}`;
                 renderBenchImages();
             } catch (err) {
-                console.warn("[SAR] Сервер недоступен, запуск JS движка для бенчмарка:", err);
-                statusText.innerText = `⏳ Выполнение в браузере (JS Engine)...`;
-                statusBackend.innerText = "Клиентский вычислительный движок";
+                console.warn("[SAR] Сервер localhost:8080 недоступен:", err);
+                const clientOnly = ["BXC", "MED", "LEE"];
+                const requiresServer = benchCustomStages.some(s => {
+                    const op = (typeof s === 'string' ? s : (s && s.op ? s.op : '')).toUpperCase();
+                    return !clientOnly.includes(op);
+                });
+
+                if (requiresServer) {
+                    statusText.innerText = `❌ Сервер sar_server.py не запущен`;
+                    statusBackend.innerHTML = `<span style="color:#ff5252; font-weight: bold;">Ошибка:</span> Алгоритм <b>${stageNames}</b> требует Python/PyTorch бэкенд на GPU.<br>Запустите сервер в терминале: <code>python "HTML Визуализация/код/sar_server.py"</code>`;
+                    return;
+                }
+
+                statusText.innerText = `⏳ Выполнение в браузере (JS Canvas)...`;
+                statusBackend.innerText = "Клиентский пространственный фильтр (Canvas)";
 
                 try {
                     const jsRes = await executeClientSideBenchPipeline(benchCustomStages, currentBenchId);
@@ -1333,7 +1350,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     benchCustomBMetrics = jsRes.metrics;
                     isBenchCustomBActive = true;
                     statusText.innerText = `✓ Вычислено в браузере за ${jsRes.timeMs} мс`;
-                    statusBackend.innerText = `Движок: WebAssembly / JS Canvas | Каскад: ${stageNames}`;
+                    statusBackend.innerText = `Движок: JS Canvas (локальный) | Каскад: ${stageNames}`;
                     renderBenchImages();
                 } catch (clientErr) {
                     statusText.innerText = `❌ Ошибка: ${clientErr.message}`;
@@ -1488,9 +1505,30 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 psnr = mse > 0 ? 10.0 * Math.log10((dr * dr) / (mse + 1e-9)) : 99.9;
             }
 
+            // Расчет EPI (Edge Preservation Index) через градиенты Собеля
+            let gradRaw = 0, gradFilt = 0;
+            for (let y = 1; y < H - 1; y++) {
+                for (let x = 1; x < W - 1; x++) {
+                    const gxR = (-raw[(y-1)*W + (x-1)] + raw[(y-1)*W + (x+1)]
+                                 -2*raw[y*W + (x-1)]   + 2*raw[y*W + (x+1)]
+                                 -raw[(y+1)*W + (x-1)] + raw[(y+1)*W + (x+1)]);
+                    const gyR = (-raw[(y-1)*W + (x-1)] - 2*raw[(y-1)*W + x] - raw[(y-1)*W + (x+1)]
+                                 +raw[(y+1)*W + (x-1)] + 2*raw[(y+1)*W + x] + raw[(y+1)*W + (x+1)]);
+                    gradRaw += Math.abs(gxR) + Math.abs(gyR);
+
+                    const gxF = (-filt[(y-1)*W + (x-1)] + filt[(y-1)*W + (x+1)]
+                                 -2*filt[y*W + (x-1)]   + 2*filt[y*W + (x+1)]
+                                 -filt[(y+1)*W + (x-1)] + filt[(y+1)*W + (x+1)]);
+                    const gyF = (-filt[(y-1)*W + (x-1)] - 2*filt[(y-1)*W + x] - filt[(y-1)*W + (x+1)]
+                                 +filt[(y+1)*W + (x-1)] + 2*filt[(y+1)*W + x] + filt[(y+1)*W + (x+1)]);
+                    gradFilt += Math.abs(gxF) + Math.abs(gyF);
+                }
+            }
+            const epi = gradRaw > 1e-8 ? (gradFilt / gradRaw) : 1.0;
+
             return {
                 enl: Math.round(enl * 100) / 100,
-                epi: 0.850,
+                epi: Math.round(epi * 1000) / 1000,
                 bias_db: Math.round(biasDb * 1000) / 1000,
                 ratio_mean: Math.round(muR * 1000) / 1000,
                 ratio_var: Math.round(varR * 1000) / 1000,
@@ -1520,8 +1558,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 if (op === "BXC") curr = filterBoxcarJS(curr, W, H, w);
                 else if (op === "MED") curr = filterMedianJS(curr, W, H, w);
                 else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, w);
-                else if (op === "BIL" || op === "FTV" || op === "RES" || op.startsWith("MER") || op.startsWith("RST") || op.startsWith("YOLO")) curr = filterBilateralJS(curr, W, H, w, 2.0, 0.12);
-                else curr = filterLeeJS(curr, W, H, w);
+                else if (op === "BIL") curr = filterBilateralJS(curr, W, H, w, 2.0, 0.12);
+                else {
+                    throw new Error(`Алгоритм '${op}' требует выполнения на сервере sar_server.py (PyTorch/GPU).`);
+                }
             }
 
             for (let i = 0; i < W * H; i++) {
@@ -1580,10 +1620,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         curR = filterMedianJS(curR, W, H, w); curG = filterMedianJS(curG, W, H, w); curB = filterMedianJS(curB, W, H, w);
                     } else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") {
                         curR = filterLeeJS(curR, W, H, w); curG = filterLeeJS(curG, W, H, w); curB = filterLeeJS(curB, W, H, w);
-                    } else {
+                    } else if (op === "BIL") {
                         curR = filterBilateralJS(curR, W, H, w, 2.0, 0.15);
                         curG = filterBilateralJS(curG, W, H, w, 2.0, 0.15);
                         curB = filterBilateralJS(curB, W, H, w, 2.0, 0.15);
+                    } else {
+                        throw new Error(`Алгоритм '${op}' требует выполнения на сервере sar_server.py (PyTorch/GPU).`);
                     }
                 }
                 for (let i = 0; i < W * H; i++) {
@@ -1608,7 +1650,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     if (op === "BXC") curr = filterBoxcarJS(curr, W, H, w);
                     else if (op === "MED") curr = filterMedianJS(curr, W, H, w);
                     else if (op === "LEE" || op === "ENH_LEE" || op === "KUA") curr = filterLeeJS(curr, W, H, w);
-                    else curr = filterBilateralJS(curr, W, H, w, 2.0, 0.15);
+                    else if (op === "BIL") curr = filterBilateralJS(curr, W, H, w, 2.0, 0.15);
+                    else {
+                        throw new Error(`Алгоритм '${op}' требует выполнения на сервере sar_server.py (PyTorch/GPU).`);
+                    }
                 }
                 for (let i = 0; i < W * H; i++) {
                     const v = Math.min(255, Math.max(0, Math.round(curr[i] * 255.0)));
@@ -1973,11 +2018,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         });
 
         document.getElementById('opacity-slider').addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            document.getElementById('opacity-val').innerText = val + '%';
-            currentOpacity = val / 100.0;
-            if (overlayA) overlayA.setOpacity(currentOpacity);
-            if (overlayB) overlayB.setOpacity(currentOpacity);
+            setSarOpacity(e.target.value);
         });
 
         let isDragging = false;
