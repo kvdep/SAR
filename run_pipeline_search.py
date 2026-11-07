@@ -35,7 +35,19 @@ from build_full_benchmark import (
     filter_gamma_map, JointFTVSARP
 )
 
-weights_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\weights"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+weights_dir = os.path.join(BASE_DIR, "HTML Визуализация", "веса")
+if not os.path.exists(weights_dir):
+    weights_dir = os.path.join(BASE_DIR, "weights")
+
+paper_results_dir = os.path.join(BASE_DIR, "HTML Визуализация", "данные", "paper_results")
+if not os.path.exists(paper_results_dir):
+    paper_results_dir = os.path.join(BASE_DIR, "paper_results")
+
+data_cache_dir = os.path.join(BASE_DIR, "HTML Визуализация", "данные", "data_cache")
+if not os.path.exists(data_cache_dir):
+    data_cache_dir = os.path.join(BASE_DIR, "data_cache")
+
 model_res = SAR_ResNet(in_channels=1, num_features=64, num_layers=17).to(device).eval()
 model_res.load_state_dict(torch.load(os.path.join(weights_dir, "sar_resnet_vitale.pth"), map_location=device))
 
@@ -151,8 +163,8 @@ def eval_metrics(im_raw: np.ndarray, im_filt: np.ndarray, im_gt: np.ndarray | No
 # =========================================================================
 
 def main():
-    p_noisy = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\paper_results\Vitale_SAR_ResNet_p8_img1_256x256.png"
-    p_gt = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\paper_results\Vitale_SAR_ResNet_p8_img0_256x256.png"
+    p_noisy = os.path.join(paper_results_dir, "Vitale_SAR_ResNet_p8_img1_256x256.png")
+    p_gt = os.path.join(paper_results_dir, "Vitale_SAR_ResNet_p8_img0_256x256.png")
     im_raw = np.array(Image.open(p_noisy).convert("L")).astype(np.float32) / 255.0
     im_gt = np.array(Image.open(p_gt).convert("L")).astype(np.float32) / 255.0
 
@@ -242,7 +254,7 @@ def main():
     print("ЭКСПЕРИМЕНТ 2: ВАЛИДАЦИЯ ТОП-КОНВЕЙЕРОВ НА РЕАЛЬНОМ ЛЕСЕ РФ")
     print("=" * 80)
 
-    raw_forest = np.load(r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache\raw_forest.npz")["vv"]
+    raw_forest = np.load(os.path.join(data_cache_dir, "raw_forest.npz"))["vv"]
     m_raw_forest = eval_metrics(raw_forest, raw_forest, None)
     print(f"Исходный лес: ENL={m_raw_forest['enl']}, EPI={m_raw_forest['epi']}")
 
@@ -269,9 +281,10 @@ def main():
             **m_f
         })
 
-    with open("forest_top_pipelines.json", "w", encoding="utf-8") as f:
+    out_json = os.path.join(BASE_DIR, "HTML Визуализация", "результаты_фильтрации", "forest_top_pipelines.json")
+    with open(out_json, "w", encoding="utf-8") as f:
         json.dump(forest_eval_results, f, ensure_ascii=False, indent=2)
-    print("[ГОТОВО] Валидация на лесе сохранена в forest_top_pipelines.json")
+    print(f"[ГОТОВО] Валидация на лесе сохранена в {out_json}")
 
 if __name__ == "__main__":
     main()

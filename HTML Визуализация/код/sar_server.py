@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Автономный сервер Sentinel-1 SAR с GPU-ускорением (RTX 3080)
+"""Автономный сервер Sentinel-1 SAR с GPU-ускорением
 для произвольных конвейеров фильтрации любой длины,
 включая параметры фильтров (kwargs), метод НИР (Robust PCA IALM),
 модель MERLIN CNN, и переключение сезонов (Весна, Лето, Осень, Зима).
 
 Запуск:
-    D:\\Programs\\Python\\python.exe sar_server.py [порт, по умолчанию 8080]
+    python sar_server.py [порт, по умолчанию 8080]
 """
 
 from __future__ import annotations
@@ -30,20 +30,20 @@ from matplotlib import cm
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Ограничение видеопамяти VRAM в соответствии с gpu_vram_coordination.md (не более 2.0 ГБ)
-if torch.cuda.is_available():
-    torch.cuda.set_per_process_memory_fraction(0.20, device=0)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[СЕРВЕР] Вычислительное устройство: {device}")
 if torch.cuda.is_available():
     print(f"[СЕРВЕР] Графический процессор: {torch.cuda.get_device_name(0)}")
-    print(f"[СЕРВЕР] Лимит VRAM установлен: 20% (~2048 МБ) для параллельной работы агентов.")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-weights_dir = os.path.join(BASE_DIR, "weights")
-paper_dir = os.path.join(BASE_DIR, "paper_results")
-data_cache_dir = os.path.join(BASE_DIR, "data_cache")
+# Динамическая конфигурация путей
+try:
+    from .config import ROOT_DIR, DATA_DIR, DATA_CACHE_DIR, PAPER_DIR, WEIGHTS_DIR, RESULTS_DIR, HTML_DIR
+except ImportError:
+    from config import ROOT_DIR, DATA_DIR, DATA_CACHE_DIR, PAPER_DIR, WEIGHTS_DIR, RESULTS_DIR, HTML_DIR
+
+weights_dir = WEIGHTS_DIR
+paper_dir = PAPER_DIR
+data_cache_dir = DATA_CACHE_DIR
 
 # -------------------------------------------------------------------------
 # 1. АРХИТЕКТУРЫ СЕТЕЙ
@@ -455,6 +455,9 @@ def execute_pipeline(im_start: np.ndarray, stages: list[Any]) -> np.ndarray:
 # -------------------------------------------------------------------------
 
 class SARRequestHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=HTML_DIR, **kwargs)
+
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')

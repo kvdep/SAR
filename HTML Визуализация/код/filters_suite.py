@@ -23,7 +23,7 @@ try:
     from .config import WEIGHTS_DIR, VRAM_FRACTION, ROOT_DIR
     from .filter_registry import register_filter, FilterRegistry
 except ImportError:
-    from config import WEIGHTS_DIR, VRAM_FRACTION, ROOT_DIR
+    from config import WEIGHTS_DIR, ROOT_DIR
     from filter_registry import register_filter, FilterRegistry
 
 # Подключение модулей обучения нейросетей
@@ -31,14 +31,8 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 # -----------------------------------------------------------------------------
-# 1. ИНИЦИАЛИЗАЦИЯ CUDA И УПРАВЛЕНИЕ ВИДЕОПАМЯТЬЮ
+# 1. ИНИЦИАЛИЗАЦИЯ ВЫЧИСЛИТЕЛЬНОГО УСТРОЙСТВА
 # -----------------------------------------------------------------------------
-
-if torch.cuda.is_available():
-    try:
-        torch.cuda.set_per_process_memory_fraction(VRAM_FRACTION, device=0)
-    except RuntimeError:
-        pass
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

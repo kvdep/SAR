@@ -150,12 +150,14 @@ def train_resnet():
     print(f"[УСПЕХ] SAR-ResNet обучен за {time.time() - t0:.2f} сек.", flush=True)
 
     # Сохранение весов
-    weights_path = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\weights\sar_resnet_vitale.pth"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    weights_path = os.path.join(base_dir, "HTML Визуализация", "веса", "sar_resnet_vitale.pth")
+    os.makedirs(os.path.dirname(weights_path), exist_ok=True)
     torch.save(model.state_dict(), weights_path)
     print(f"[СОХРАНЕНО] Обновленные веса: {weights_path}", flush=True)
 
     # Верификация на лесе
-    cache_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache"
+    cache_dir = os.path.join(base_dir, "temp", "data_cache")
     vv_forest = np.load(os.path.join(cache_dir, "raw_forest.npz"))['vv']
 
     model.eval()

@@ -37,20 +37,15 @@ from PIL import Image
 
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Ограничение видеопамяти VRAM согласно gpu_vram_coordination.md
-if torch.cuda.is_available():
-    torch.cuda.set_per_process_memory_fraction(0.20, device=0)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[ИНФОРМАЦИЯ] Вычислительное устройство: {device}")
 if torch.cuda.is_available():
     print(f"[ИНФОРМАЦИЯ] Графический процессор: {torch.cuda.get_device_name(0)}")
-    print(f"[ИНФОРМАЦИЯ] Лимит VRAM установлен: 20% (~2048 МБ)")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data_cache")
-WEIGHTS_DIR = os.path.join(BASE_DIR, "weights")
-PAPER_DIR = os.path.join(BASE_DIR, "paper_results")
+DATA_DIR = os.path.join(BASE_DIR, "temp", "data_cache")
+WEIGHTS_DIR = os.path.join(BASE_DIR, "HTML Визуализация", "веса")
+PAPER_DIR = os.path.join(BASE_DIR, "HTML Визуализация", "данные", "paper_results")
 os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
 

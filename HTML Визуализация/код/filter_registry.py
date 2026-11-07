@@ -38,9 +38,9 @@ from PIL import Image
 
 # Импорт конфигурации путей
 try:
-    from .config import WEIGHTS_DIR, VRAM_FRACTION, WEBP_QUALITY
+    from .config import WEIGHTS_DIR, WEBP_QUALITY
 except ImportError:
-    from config import WEIGHTS_DIR, VRAM_FRACTION, WEBP_QUALITY
+    from config import WEIGHTS_DIR, WEBP_QUALITY
 
 
 # -----------------------------------------------------------------------------

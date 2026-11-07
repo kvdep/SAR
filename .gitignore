@@ -33,10 +33,9 @@ weights/
 *.bin
 *.onnx
 
-# Heavyweight scientific datasets and raster archives
-*.nc
-*.tif
-*.tiff
+# Unified temporary directory and caches
+temp/
+*/temp/
 data_cache/
 benchmark_results/
 *.rar
@@ -44,6 +43,9 @@ benchmark_results/
 *.tar
 *.gz
 *.7z
+*.nc
+*.tif
+*.tiff
 
 # Downloaded articles, papers and raw PDF documents
 paper_results/

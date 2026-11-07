@@ -831,6 +831,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const qSelect = document.getElementById('quadrant-select');
         qSelect.innerHTML = quadKeys.map(k => `<option value="${k}">${DATA[k].title}</option>`).join('');
         qSelect.value = currentQuad;
+        populateSeasonSelect();
+        populatePipeSelects();
 
         const map = L.map('map', {
             center: DATA[currentQuad].center,
@@ -890,6 +892,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         let overlayA = null;
         let overlayB = null;
+
+        function populateSeasonSelect() {
+            const q = DATA[currentQuad];
+            const select = document.getElementById('season-select');
+            if (!select || !q) return;
+            const avail = (q.seasons && Object.keys(q.seasons).length > 0) ? Object.keys(q.seasons) : ['spring'];
+            const seasonLabels = {
+                'spring': '🌱 Весна (Апрель/Май, вегетация)',
+                'summer': '☀️ Лето (Июль/Август, засушливый период)',
+                'autumn': '🍂 Осень (Октябрь/Ноябрь, увлажненная почва)',
+                'winter': '❄️ Зима (Январь/Февраль, промерзание/снег)'
+            };
+            select.innerHTML = avail.map(key => {
+                const label = seasonLabels[key] || ('📅 Временной срез: ' + key);
+                return `<option value="${key}" ${key === currentSeason ? 'selected' : ''}>${label}</option>`;
+            }).join('');
+            if (!avail.includes(currentSeason)) {
+                currentSeason = avail[0];
+                select.value = currentSeason;
+            }
+        }
 
         function populatePipeSelects() {
             const q = DATA[currentQuad];
@@ -1910,6 +1933,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const q = DATA[currentQuad];
             document.getElementById('quadrant-desc').innerText = q.desc;
             map.flyTo(q.center, q.zoom, { duration: 1.0 });
+            populateSeasonSelect();
             populatePipeSelects();
             isCustomBActive = false;
             customBImageUrl = null;

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """Модуль централизованной конфигурации бенчмарка SAR и HTML-генератора.
-Определяет пути к данным, параметры видеопамяти GPU, качество сжатия WebP,
-а также реестр исследуемых полигонов (сцен) и временных срезов (дат/сезонов).
+Все пути вычисляются динамически относительно расположения проекта в файловой системе.
+Никакого хардкода абсолютных путей. Любые каталоги настраиваются в секции 1.
 
 Масштабирование:
-1. Добавление новой локации: вызовите register_scene(...) или добавьте запись в SCENES_CONFIG.
+1. Добавление новой локации: вызовите register_scene(...) или добавьте запись в SCENES_REGISTRY.
 2. Добавление произвольных дат: укажите словарь дат в параметре dates/seasons.
 """
 
@@ -17,36 +17,38 @@ import numpy as np
 from PIL import Image
 
 # -----------------------------------------------------------------------------
-# 1. СИСТЕМНЫЕ ПУТИ И ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ
+# 1. СИСТЕМНЫЕ ПУТИ (динамическое определение относительно расположения файлов)
 # -----------------------------------------------------------------------------
 
-# Базовая директория текущего модуля: .../SAR/HTML Визуализация/код
+# Базовая директория текущего модуля: .../HTML Визуализация/код
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Директория раздела визуализации: .../HTML Визуализация
 HTML_VIS_DIR = os.path.dirname(MODULE_DIR)
-# Корневая директория репозитория SAR: .../SAR
-DEFAULT_ROOT_DIR = os.path.dirname(HTML_VIS_DIR)
+# Корневая директория репозитория SAR (родительская к 'HTML Визуализация')
+PROJECT_ROOT = os.path.abspath(os.path.join(HTML_VIS_DIR, ".."))
 
-ROOT_DIR = os.environ.get("SAR_ROOT_DIR", DEFAULT_ROOT_DIR)
-DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", os.path.join(ROOT_DIR, "data_cache"))
+# Пользовательские переменные окружения или автоматические пути проекта:
+ROOT_DIR = os.environ.get("SAR_ROOT_DIR", PROJECT_ROOT)
+
+# Каталог входных данных (.nc, .tif, data_cache, paper_results)
+DATA_DIR = os.environ.get("SAR_DATA_DIR", os.path.join(HTML_VIS_DIR, "данные"))
+DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", os.path.join(DATA_DIR, "data_cache"))
+PAPER_DIR = os.environ.get("SAR_PAPER_DIR", os.path.join(DATA_DIR, "paper_results"))
+
+# Каталог обученных весов нейросетевых моделей
 WEIGHTS_DIR = os.environ.get("SAR_WEIGHTS_DIR", os.path.join(HTML_VIS_DIR, "веса"))
-if not os.path.exists(WEIGHTS_DIR) and os.path.exists(os.path.join(ROOT_DIR, "weights")):
-    WEIGHTS_DIR = os.path.join(ROOT_DIR, "weights")
-PAPER_DIR = os.environ.get("SAR_PAPER_DIR", os.path.join(ROOT_DIR, "paper_results"))
-OUTPUT_HTML_DIR = os.environ.get("SAR_OUTPUT_DIR", os.path.join(HTML_VIS_DIR, "данные"))
 
-# Файлы вывода готовых HTML-страниц
-OUTPUT_HTML_PATHS = [
-    os.path.join(OUTPUT_HTML_DIR, "sar_advanced_comparison.html"),
-    os.path.join(OUTPUT_HTML_DIR, "sar_visualization.html"),
-    os.path.join(OUTPUT_HTML_DIR, "index.html"),
-    # Зеркало в корне репозитория для локального открытия
-    os.path.join(ROOT_DIR, "index.html"),
-]
+# Каталог результатов фильтрации и экспериментов (JSON, сводки)
+RESULTS_DIR = os.environ.get("SAR_RESULTS_DIR", os.path.join(HTML_VIS_DIR, "результаты_фильтрации"))
 
-# Вычислительные параметры
-VRAM_FRACTION = float(os.environ.get("SAR_VRAM_FRACTION", "0.20"))  # Ограничение VRAM для RTX 3080 (<= 2048 МБ)
-WEBP_QUALITY = int(os.environ.get("SAR_WEBP_QUALITY", "70"))        # Качество WebP сжатия растров (0-100)
-BENCHMARK_RUNS = int(os.environ.get("SAR_BENCHMARK_RUNS", "3"))     # Число проходов для замера time_ms
+# Каталог вывода единственного канонического HTML файла
+HTML_DIR = os.environ.get("SAR_HTML_DIR", os.path.join(HTML_VIS_DIR, "html"))
+OUTPUT_HTML_PATH = os.path.join(HTML_DIR, "index.html")
+OUTPUT_HTML_PATHS = [OUTPUT_HTML_PATH]
+
+# Параметры генерации растров
+WEBP_QUALITY = int(os.environ.get("SAR_WEBP_QUALITY", "70"))        # Качество WebP сжатия (0-100)
+BENCHMARK_RUNS = int(os.environ.get("SAR_BENCHMARK_RUNS", "3"))     # Проходы замера аппаратного времени time_ms
 DEFAULT_BASEMAP = os.environ.get("SAR_DEFAULT_BASEMAP", "esri")     # Оптическая подложка по умолчанию
 
 # -----------------------------------------------------------------------------
@@ -74,9 +76,23 @@ class SceneSpec:
         self.center = center
         self.zoom = zoom
         self.bbox = bbox
-        self.npz_file = npz_file or os.path.join(DATA_CACHE_DIR, f"raw_{scene_id}.npz")
-        self.nc_file = nc_file or os.path.join(ROOT_DIR, f"s1_{scene_id}.nc")
-        self.seasons_file = seasons_file or os.path.join(DATA_CACHE_DIR, f"seasons_{scene_id}.npz")
+
+        # Динамический поиск файлов с проверкой внутри DATA_DIR / DATA_CACHE_DIR
+        def_npz = os.path.join(DATA_CACHE_DIR, f"raw_{scene_id}.npz")
+        if not os.path.exists(def_npz) and os.path.exists(os.path.join(ROOT_DIR, "data_cache", f"raw_{scene_id}.npz")):
+            def_npz = os.path.join(ROOT_DIR, "data_cache", f"raw_{scene_id}.npz")
+        self.npz_file = npz_file or def_npz
+
+        def_nc = os.path.join(DATA_DIR, f"s1_{scene_id}.nc")
+        if not os.path.exists(def_nc) and os.path.exists(os.path.join(ROOT_DIR, f"s1_{scene_id}.nc")):
+            def_nc = os.path.join(ROOT_DIR, f"s1_{scene_id}.nc")
+        self.nc_file = nc_file or def_nc
+
+        def_seasons = os.path.join(DATA_CACHE_DIR, f"seasons_{scene_id}.npz")
+        if not os.path.exists(def_seasons) and os.path.exists(os.path.join(ROOT_DIR, "data_cache", f"seasons_{scene_id}.npz")):
+            def_seasons = os.path.join(ROOT_DIR, "data_cache", f"seasons_{scene_id}.npz")
+        self.seasons_file = seasons_file or def_seasons
+
         self.custom_dates = custom_dates or {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -113,12 +129,11 @@ def register_scene(
     Пример вызова:
         register_scene(
             scene_id="kamchatka",
-            title="🇷🇺 9. Вулкан Ключевская Сопка, Камчатка",
+            title="9. Вулкан Ключевская Сопка, Камчатка",
             desc="Радиолокационный мониторинг вулканического рельефа.",
             center=[56.05, 160.64],
             zoom=12,
-            bbox=[160.50, 55.95, 160.80, 56.15],
-            npz_file=r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache\raw_kamchatka.npz"
+            bbox=[160.50, 55.95, 160.80, 56.15]
         )
     """
     spec = SceneSpec(
@@ -143,8 +158,8 @@ def register_scene(
 
 register_scene(
     scene_id="benevento",
-    title="🇮🇹 1. Беневенто, Италия (Vitale et al. 2021, S1-lat 41.13, lon 14.75)",
-    desc="Реальный полигон статьи Vitale et al. (IEEE JSTARS 2021) и GitHub-репозитория CNNSpeckleFilter. Реальные данные Sentinel-1 IW GRD из Google Earth Engine (8 временных проходов). Холмистый рельеф региона Кампания, оливковые рощи и историческая застройка.",
+    title="1. Беневенто, Италия (Vitale et al. 2021, S1-lat 41.13, lon 14.75)",
+    desc="Реальный полигон статьи Vitale et al. (IEEE JSTARS 2021) и репозитория CNNSpeckleFilter. Данные Sentinel-1 IW GRD из Google Earth Engine (8 временных проходов). Холмистый рельеф региона Кампания, оливковые рощи и историческая застройка.",
     center=[41.15, 14.75],
     zoom=13,
     bbox=[14.70, 41.10, 14.80, 41.20],
@@ -152,8 +167,8 @@ register_scene(
 
 register_scene(
     scene_id="rome",
-    title="🇮🇹 2. Рим, Италия (Vitale et al. 2021, Рис. 1: Тибр и Ватикан)",
-    desc="Крупный полигон городской агломерации Рима из статьи Vitale et al. Включает излучину реки Тибр, плотную застройку исторического центра и Ватикана. Высокая плотность ярких точечных отражателей и уголковых структур.",
+    title="2. Рим, Италия (Vitale et al. 2021, Рис. 1: Тибр и Ватикан)",
+    desc="Полигон городской агломерации Рима из статьи Vitale et al. Включает излучину реки Тибр, плотную застройку исторического центра и Ватикана. Высокая плотность точечных отражателей и уголковых структур.",
     center=[41.90, 12.45],
     zoom=12,
     bbox=[12.40, 41.85, 12.50, 41.95],
@@ -161,8 +176,8 @@ register_scene(
 
 register_scene(
     scene_id="serre_poncon",
-    title="🇫🇷 3. Сер-Понсон, Франция (Dalsasso et al. 2021, Рис. 9)",
-    desc="Реальный полигон Альпийского водохранилища Сер-Понсон из статьи MERLIN (Dalsasso et al., IEEE TGRS 2021). Сложная граница раздела вода-суша, крутые горные склоны и радиолокационные тени (SAR foreshortening/layover).",
+    title="3. Сер-Понсон, Франция (Dalsasso et al. 2021, Рис. 9)",
+    desc="Полигон Альпийского водохранилища Сер-Понсон из статьи MERLIN (Dalsasso et al., IEEE TGRS 2021). Граница раздела вода-суша, крутые горные склоны и радиолокационные тени (SAR foreshortening/layover).",
     center=[44.52, 6.32],
     zoom=13,
     bbox=[6.25, 44.47, 6.38, 44.57],
@@ -170,8 +185,8 @@ register_scene(
 
 register_scene(
     scene_id="forest",
-    title="🇷🇺 4. Бореальный лесной массив, Тверская область (РФ, 56.5°N, 35.8°E)",
-    desc="Плотный массив смешанного и хвойного леса Восточно-Европейской равнины. Наличие развитого объема рассеяния полога леса (Volume Scattering), высокая кросс-поляризация VH и выраженный спекл-паттерн.",
+    title="4. Бореальный лесной массив, Тверская область (56.5°N, 35.8°E)",
+    desc="Массив смешанного и хвойного леса Восточно-Европейской равнины. Наличие развитого объема рассеяния полога леса (Volume Scattering), высокая кросс-поляризация VH и выраженный спекл-паттерн.",
     center=[56.50, 35.80],
     zoom=13,
     bbox=[35.75, 56.46, 35.85, 56.54],
@@ -179,8 +194,8 @@ register_scene(
 
 register_scene(
     scene_id="city",
-    title="🇷🇺 5. Москва, СЗАО (Строгино, Серебряный Бор, МКАД)",
-    desc="Плотный урбанизированный ландшафт: высокоэтажные жилые кварталы, водная гладь Строгинского затона, излучина Москвы-реки, лесопарк Серебряный Бор и крупные транспортные магистрали. Сильный эффект двойного переотражения (Double-Bounce).",
+    title="5. Москва, СЗАО (Строгино, Серебряный Бор, МКАД)",
+    desc="Урбанизированный ландшафт: высокоэтажные жилые кварталы, водная гладь Строгинского затона, излучина Москвы-реки, лесопарк Серебряный Бор и крупные транспортные магистрали. Сильный эффект двойного переотражения (Double-Bounce).",
     center=[55.80, 37.44],
     zoom=13,
     bbox=[37.38, 37.76, 37.50, 37.84],
@@ -188,7 +203,7 @@ register_scene(
 
 register_scene(
     scene_id="water",
-    title="🌊 6. Акватория Черного моря (Район Севастополя, Крым)",
+    title="6. Акватория Черного моря (Район Севастополя, Крым)",
     desc="Полигон водной поверхности: низкое обратное рассеяние водной глади (зеркальное отражение волн от радара) и высокая контрастность морских судов и береговой линии.",
     center=[44.60, 33.48],
     zoom=13,
@@ -197,7 +212,7 @@ register_scene(
 
 register_scene(
     scene_id="desert",
-    title="🏜️ 7. Полупустынный массив, Астраханская область",
+    title="7. Полупустынный массив, Астраханская область",
     desc="Засушливый ландшафт с низкой диэлектрической проницаемостью сухого песчано-глинистого грунта. Низкий контраст текстуры и преобладание поверхностного брэгговского рассеяния.",
     center=[46.80, 47.80],
     zoom=13,
@@ -206,7 +221,7 @@ register_scene(
 
 register_scene(
     scene_id="mountain",
-    title="⛰️ 8. Горный массив Кавказа (Район Эльбруса, 43.3°N, 42.4°E)",
+    title="8. Горный массив Кавказа (Район Эльбруса, 43.3°N, 42.4°E)",
     desc="Сложный высокогорный рельеф: ледники, фирновые поля, скальные обнажения, сильный геометрический рельефный сдвиг фазы, радиолокационные тени и искажения крутых склонов.",
     center=[43.35, 42.45],
     zoom=13,
@@ -226,7 +241,6 @@ def load_scene_rasters(
     Возвращает:
         (vv, vh, bbox, vv_gt, vh_gt)
     """
-    # 1. Загрузка базового NPZ
     if os.path.exists(scene_spec.npz_file):
         npz_data = np.load(scene_spec.npz_file)
         vv_raw = npz_data["vv"].astype(np.float32)
@@ -237,7 +251,6 @@ def load_scene_rasters(
     else:
         raise FileNotFoundError(f"Файл полигона не найден: {scene_spec.npz_file}")
 
-    # 2. Если запрошен временной срез, отличный от базового, ищем в файле сезонов или custom_dates
     if temporal_key != "spring" and os.path.exists(scene_spec.seasons_file):
         s_data = np.load(scene_spec.seasons_file)
         k_vv = f"{temporal_key}_vv"
@@ -250,7 +263,6 @@ def load_scene_rasters(
                 s_vh = np.array(Image.fromarray(s_vh).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
             return s_vv, s_vh, bbox, (vv_gt if temporal_key == "spring" else None), (vh_gt if temporal_key == "spring" else None)
 
-    # 3. Проверка пользовательских произвольных дат (custom_dates)
     if temporal_key in scene_spec.custom_dates:
         date_info = scene_spec.custom_dates[temporal_key]
         if "npz" in date_info and os.path.exists(date_info["npz"]):

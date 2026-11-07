@@ -530,7 +530,8 @@ def run_complete_benchmark():
     
     # Загрузка обученных нейросетевых моделей
     from train_sar_models import SAR_ResNet, SAR_MERLIN_BlindSpot, SAR_Restormer
-    weights_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\weights"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    weights_dir = os.path.join(base_dir, "HTML Визуализация", "веса")
     
     m_resnet = SAR_ResNet(in_channels=1, num_features=64, num_layers=17).to(device)
     m_resnet.load_state_dict(torch.load(os.path.join(weights_dir, "sar_resnet_vitale.pth"), map_location=device))
@@ -594,7 +595,7 @@ def run_complete_benchmark():
         print(f"[{name:<35}] PSNR: {m['psnr']:5.2f} dB | SSIM: {m['ssim']:6.4f} | EPI: {m['epi_gt']:6.4f} | ENL: {m['enl_homo']:6.2f} | Var(r): {m['ratio_var']:6.4f} | Time: {m['time_ms']:6.1f} ms")
         
     # Сохранение результатов в JSON и CSV
-    out_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\benchmark_results"
+    out_dir = os.path.join(base_dir, "HTML Визуализация", "результаты_фильтрации", "benchmark_results")
     os.makedirs(out_dir, exist_ok=True)
     
     with open(os.path.join(out_dir, "benchmark_metrics.json"), "w", encoding="utf-8") as f:

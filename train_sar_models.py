@@ -347,24 +347,33 @@ def generate_multi_terrain_tensor(num_samples: int = 600, patch_size: int = 128,
     return noisy_tensor, gt_tensor
 
 
-def load_real_sar_tensor(num_patches: int = 600, patch_size: int = 128, tif_path: str = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\sar_2025_0_0.tif"):
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_TIF_PATH = os.path.join(BASE_DIR, "HTML Визуализация", "данные", "sar_2025_0_0.tif")
+DEFAULT_CACHE_DIR = os.path.join(BASE_DIR, "temp", "data_cache")
+DEFAULT_WEIGHTS_DIR = os.path.join(BASE_DIR, "HTML Визуализация", "веса")
+
+
+def load_real_sar_tensor(num_patches: int = 600, patch_size: int = 128, tif_path: str = None):
+    if tif_path is None:
+        tif_path = DEFAULT_TIF_PATH
     print(f"[ГЕНЕРАЦИЯ] Извлечение {num_patches} реальных патчей Sentinel-1 из {tif_path}...", flush=True)
     patches = []
-    with rasterio.open(tif_path) as src:
-        H, W = src.shape
-        attempts = 0
-        while len(patches) < num_patches and attempts < num_patches * 10:
-            attempts += 1
-            r = np.random.randint(150, H - patch_size - 150)
-            c = np.random.randint(150, W - patch_size - 150)
-            data = src.read(1, window=((r, r + patch_size), (c, c + patch_size)))
-            if np.all(np.isfinite(data)) and np.all(data > 0):
-                p = data.astype(np.float32)
-                p = np.clip(p, 1e-4, np.percentile(p, 99.5))
-                patches.append(p)
-                
+    if os.path.exists(tif_path):
+        with rasterio.open(tif_path) as src:
+            H, W = src.shape
+            attempts = 0
+            while len(patches) < num_patches and attempts < num_patches * 10:
+                attempts += 1
+                r = np.random.randint(150, H - patch_size - 150)
+                c = np.random.randint(150, W - patch_size - 150)
+                data = src.read(1, window=((r, r + patch_size), (c, c + patch_size)))
+                if np.all(np.isfinite(data)) and np.all(data > 0):
+                    p = data.astype(np.float32)
+                    p = np.clip(p, 1e-4, np.percentile(p, 99.5))
+                    patches.append(p)
+                    
     if len(patches) < num_patches:
-        cache_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\data_cache"
+        cache_dir = DEFAULT_CACHE_DIR
         for name in ['city', 'forest', 'mountain', 'desert', 'water']:
             npz = os.path.join(cache_dir, f"raw_{name}.npz")
             if os.path.exists(npz):
@@ -543,7 +552,7 @@ def train_sar_transformer_fast(noisy_data: torch.Tensor, gt_data: torch.Tensor, 
 # =========================================================================
 
 def main():
-    weights_dir = r"D:\ПРОФ\ВУЗ\ВТСК\SAR\weights"
+    weights_dir = DEFAULT_WEIGHTS_DIR
     os.makedirs(weights_dir, exist_ok=True)
     
     # 1. Генерация данных

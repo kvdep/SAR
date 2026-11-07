@@ -1,7 +1,10 @@
+import os
 import re
 from seleniumbase import SB
 
-readme_path = r"D:\ПРОФ\ВУЗ\ВТСК\ОМЕЛА GIT\src\parsers\sentinel1C_parser\README.md"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+readme_path = os.path.join(PROJECT_ROOT, "..", "ОМЕЛА GIT", "src", "parsers", "sentinel1C_parser", "README.md")
 with open(readme_path, "r", encoding="utf-8") as f:
     md_text = f.read()
 

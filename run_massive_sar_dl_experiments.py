@@ -28,19 +28,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-# Ограничение видеопамяти VRAM согласно gpu_vram_coordination.md (не более 2.0 ГБ)
-if torch.cuda.is_available():
-    torch.cuda.set_per_process_memory_fraction(0.20, device=0)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[ИНФОРМАЦИЯ] Устройство: {device}", flush=True)
 if torch.cuda.is_available():
     print(f"[ИНФОРМАЦИЯ] GPU: {torch.cuda.get_device_name(0)}", flush=True)
-    print(f"[ИНФОРМАЦИЯ] Лимит VRAM установлен: 20% (~2048 МБ)", flush=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data_cache")
-WEIGHTS_DIR = os.path.join(BASE_DIR, "weights")
+DATA_DIR = os.path.join(BASE_DIR, "temp", "data_cache")
+WEIGHTS_DIR = os.path.join(BASE_DIR, "HTML Визуализация", "веса")
 os.makedirs(WEIGHTS_DIR, exist_ok=True)
 
 
