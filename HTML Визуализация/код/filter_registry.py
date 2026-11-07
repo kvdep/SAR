@@ -256,12 +256,12 @@ def rgb_composite_webp_base64(
     ratio_db: np.ndarray,
     quality: int = WEBP_QUALITY
 ) -> str:
-    """Формирует псевдоцветной трехканальный композит SAR: R=VV, G=VH, B=|VV-VH|."""
-    r = np.clip((vv_db - (-25.0)) / 25.0, 0.0, 1.0)
-    g = np.clip((vh_db - (-32.0)) / 24.0, 0.0, 1.0)
-    b = np.clip(ratio_db / 20.0, 0.0, 1.0)
+    """Формирует калиброванный псевдоцветной трехканальный композит SAR: R=VV, G=VH, B=|VV-VH|."""
+    r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
+    g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
+    b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
 
-    rgb = np.stack([r, g, b], axis=-1)
+    rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     u8 = (rgb * 255.0).astype(np.uint8)
     img = Image.fromarray(u8, mode="RGB")
 
@@ -297,12 +297,12 @@ def rgb_composite_base64(
     vh_db: np.ndarray,
     ratio_db: np.ndarray
 ) -> str:
-    """Формирует RGB композит в формате PNG."""
-    r = np.clip((vv_db - (-25.0)) / 25.0, 0.0, 1.0)
-    g = np.clip((vh_db - (-32.0)) / 24.0, 0.0, 1.0)
-    b = np.clip(ratio_db / 20.0, 0.0, 1.0)
+    """Формирует калиброванный RGB композит в формате PNG."""
+    r = np.clip((vv_db - (-18.0)) / (-2.0 - (-18.0)), 0.0, 1.0)
+    g = np.clip((vh_db - (-24.0)) / (-8.0 - (-24.0)), 0.0, 1.0)
+    b = np.clip((ratio_db - 2.0) / (14.0 - 2.0), 0.0, 1.0)
 
-    rgb = np.stack([r, g, b], axis=-1)
+    rgb = np.stack([np.nan_to_num(r), np.nan_to_num(g), np.nan_to_num(b)], axis=-1)
     u8 = (rgb * 255.0).astype(np.uint8)
     img = Image.fromarray(u8, mode="RGB")
 

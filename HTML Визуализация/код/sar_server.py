@@ -232,7 +232,7 @@ class SARRequestHandler(SimpleHTTPRequestHandler):
                         b64 = array_to_png_base64(ratio_db, 0.0, 20.0, cmap_name="viridis")
                     elif layer == "res_ratio":
                         res_map = vv_in / np.maximum(filt_vv, 1e-6)
-                        b64 = array_to_png_base64(res_map, 0.0, 2.0, cmap_name="coolwarm")
+                        b64 = array_to_png_base64(res_map, 0.0, 2.5, cmap_name="coolwarm")
                     elif layer == "vh":
                         b64 = array_to_png_base64(vh_db, -32.0, -8.0)
                     else:  # "vv"
