@@ -25,6 +25,8 @@ Thumbs.db
 
 # Deep Learning weights and checkpoints
 weights/
+"HTML Визуализация/веса/"
+веса/
 *.pth
 *.pt
 *.ckpt
