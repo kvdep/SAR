@@ -1,13 +1,18 @@
-# -*- coding: utf-8 -*-
-import json, sys
+import json, sys, os
 sys.stdout.reconfigure(encoding='utf-8')
 
-with open("sar_advanced_comparison.html", "r", encoding="utf-8") as f:
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+HTML_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "html", "index.html"))
+
+if not os.path.exists(HTML_PATH):
+    raise FileNotFoundError(f"Файл визуализации не найден: {HTML_PATH}")
+
+with open(HTML_PATH, "r", encoding="utf-8") as f:
     text = f.read()
 
 prefix = "const DATA = "
 start = text.find(prefix) + len(prefix)
-end = text.find(";\n\n        const quadKeys =", start)
+end = text.find(";\n", start)
 data = json.loads(text[start:end])
 
 print("Scenes:", [k for k in data.keys() if not k.startswith("_")])

@@ -330,9 +330,12 @@ def main():
     # 3. Сериализация в единый JSON и внедрение в HTML шаблон
     print("\n[ИНФОРМАЦИЯ] Сериализация данных в JSON...")
     data_json = json.dumps(app_data)
+    filter_meta = FilterRegistry.get_metadata()
+    filter_meta_json = json.dumps(filter_meta, ensure_ascii=False)
 
     print("[ИНФОРМАЦИЯ] Внедрение данных в HTML_TEMPLATE...")
     html_content = HTML_TEMPLATE.replace("__DATA_JSON__", data_json)
+    html_content = html_content.replace("__FILTER_METADATA_JSON__", filter_meta_json)
 
     # 4. Сохранение единственного канонического файла index.html
     os.makedirs(HTML_DIR, exist_ok=True)

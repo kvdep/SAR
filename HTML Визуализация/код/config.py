@@ -32,7 +32,7 @@ ROOT_DIR = os.environ.get("SAR_ROOT_DIR", PROJECT_ROOT)
 
 # Каталог входных данных (.nc, .tif, data_cache, paper_results)
 DATA_DIR = os.environ.get("SAR_DATA_DIR", os.path.join(HTML_VIS_DIR, "данные"))
-DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", os.path.join(DATA_DIR, "data_cache"))
+DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", os.path.join(PROJECT_ROOT, "temp", "data_cache"))
 PAPER_DIR = os.environ.get("SAR_PAPER_DIR", os.path.join(DATA_DIR, "paper_results"))
 
 # Каталог обученных весов нейросетевых моделей
@@ -65,10 +65,11 @@ class SceneSpec:
         center: List[float],
         zoom: int,
         bbox: List[float],
-        npz_file: Optional[str] = None,
-        nc_file: Optional[str] = None,
+        file_path: Optional[str] = None,
         seasons_file: Optional[str] = None,
         custom_dates: Optional[Dict[str, Dict[str, str]]] = None,
+        npz_file: Optional[str] = None,
+        nc_file: Optional[str] = None,
     ):
         self.scene_id = scene_id
         self.title = title
@@ -77,21 +78,33 @@ class SceneSpec:
         self.zoom = zoom
         self.bbox = bbox
 
-        # Динамический поиск файлов с проверкой внутри DATA_DIR / DATA_CACHE_DIR
-        def_npz = os.path.join(DATA_CACHE_DIR, f"raw_{scene_id}.npz")
-        if not os.path.exists(def_npz) and os.path.exists(os.path.join(ROOT_DIR, "data_cache", f"raw_{scene_id}.npz")):
-            def_npz = os.path.join(ROOT_DIR, "data_cache", f"raw_{scene_id}.npz")
-        self.npz_file = npz_file or def_npz
+        # Автоматическое определение основного файла данных (.npz, .nc, .tif)
+        resolved_file = file_path or npz_file or nc_file
+        if not resolved_file or not os.path.exists(resolved_file):
+            candidates = [
+                os.path.join(DATA_CACHE_DIR, f"raw_{scene_id}.npz"),
+                os.path.join(DATA_DIR, f"s1_{scene_id}.nc"),
+                os.path.join(DATA_DIR, f"{scene_id}.tif"),
+                os.path.join(DATA_DIR, f"{scene_id}.nc"),
+                os.path.join(DATA_DIR, f"sar_{scene_id}.tif"),
+                os.path.join(DATA_DIR, f"sar_{scene_id}.nc"),
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    resolved_file = c
+                    break
+            if not resolved_file:
+                resolved_file = candidates[0]
 
-        def_nc = os.path.join(DATA_DIR, f"s1_{scene_id}.nc")
-        if not os.path.exists(def_nc) and os.path.exists(os.path.join(ROOT_DIR, f"s1_{scene_id}.nc")):
-            def_nc = os.path.join(ROOT_DIR, f"s1_{scene_id}.nc")
-        self.nc_file = nc_file or def_nc
+        self.file_path = resolved_file
+        self.npz_file = resolved_file if resolved_file.endswith(".npz") else os.path.join(DATA_CACHE_DIR, f"raw_{scene_id}.npz")
+        self.nc_file = resolved_file if resolved_file.endswith(".nc") else os.path.join(DATA_DIR, f"s1_{scene_id}.nc")
 
-        def_seasons = os.path.join(DATA_CACHE_DIR, f"seasons_{scene_id}.npz")
-        if not os.path.exists(def_seasons) and os.path.exists(os.path.join(ROOT_DIR, "data_cache", f"seasons_{scene_id}.npz")):
-            def_seasons = os.path.join(ROOT_DIR, "data_cache", f"seasons_{scene_id}.npz")
-        self.seasons_file = seasons_file or def_seasons
+        # Автоматическое определение файла сезонных рядов
+        def_seasons = seasons_file or os.path.join(DATA_CACHE_DIR, f"seasons_{scene_id}.npz")
+        if not os.path.exists(def_seasons) and os.path.exists(os.path.join(DATA_DIR, f"seasons_{scene_id}.npz")):
+            def_seasons = os.path.join(DATA_DIR, f"seasons_{scene_id}.npz")
+        self.seasons_file = def_seasons
 
         self.custom_dates = custom_dates or {}
 
@@ -102,6 +115,7 @@ class SceneSpec:
             "center": self.center,
             "zoom": self.zoom,
             "bbox": self.bbox,
+            "file_path": self.file_path,
             "npz_file": self.npz_file,
             "nc_file": self.nc_file,
             "seasons_file": self.seasons_file,
@@ -229,8 +243,52 @@ register_scene(
 )
 
 # -----------------------------------------------------------------------------
-# 4. ФУНКЦИИ ЗАГРУЗКИ РАСТРОВ
-# -----------------------------------------------------------------------------
+def _read_raster_data(
+    file_path: str,
+    default_bbox: List[float]
+) -> Tuple[np.ndarray, np.ndarray, List[float], Optional[np.ndarray], Optional[np.ndarray]]:
+    """Читает двухполяризационные растры (.npz, .nc, .tif) без синтетических данных."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Файл радиолокационных данных не найден: {file_path}")
+
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".npz":
+        npz = np.load(file_path)
+        vv = npz["vv"].astype(np.float32)
+        vh = npz["vh"].astype(np.float32)
+        bbox = list(npz["bbox"]) if "bbox" in npz else default_bbox
+        vv_gt = npz["vv_gt"] if ("vv_gt" in npz and npz["vv_gt"] is not None and getattr(npz["vv_gt"], "ndim", 0) > 0) else None
+        vh_gt = npz["vh_gt"] if ("vh_gt" in npz and npz["vh_gt"] is not None and getattr(npz["vh_gt"], "ndim", 0) > 0) else None
+        return vv, vh, bbox, vv_gt, vh_gt
+
+    import rasterio
+    with rasterio.open(file_path) as src:
+        sub = getattr(src, "subdatasets", [])
+        if sub and len(sub) >= 2:
+            with rasterio.open(sub[0]) as s_vv:
+                vv = s_vv.read(1).astype(np.float32)
+            with rasterio.open(sub[1]) as s_vh:
+                vh = s_vh.read(1).astype(np.float32)
+        else:
+            vv = src.read(1).astype(np.float32)
+            vh = src.read(2).astype(np.float32) if src.count >= 2 else vv.copy()
+
+        if src.bounds is not None and src.crs is not None:
+            b = src.bounds
+            bbox = [float(b.left), float(b.bottom), float(b.right), float(b.top)]
+        else:
+            bbox = default_bbox
+
+    vv = np.nan_to_num(vv, nan=1e-6, posinf=10.0, neginf=1e-6)
+    vh = np.nan_to_num(vh, nan=1e-6, posinf=10.0, neginf=1e-6)
+
+    # Физическая линеаризация при сохранении в логарифмической шкале дБ: I = 10^(dB / 10)
+    if float(np.mean(vv)) < 0.0 or (float(np.min(vv)) < -1.0 and float(np.max(vv)) < 15.0):
+        vv = np.maximum(10.0 ** (vv / 10.0), 1e-6).astype(np.float32)
+        vh = np.maximum(10.0 ** (vh / 10.0), 1e-6).astype(np.float32)
+
+    return vv, vh, bbox, None, None
+
 
 def load_scene_rasters(
     scene_spec: SceneSpec,
@@ -238,18 +296,10 @@ def load_scene_rasters(
 ) -> Tuple[np.ndarray, np.ndarray, List[float], Optional[np.ndarray], Optional[np.ndarray]]:
     """Загружает двухполяризационные растры (VV, VH) для указанной сцены и временного среза.
     
-    Возвращает:
-        (vv, vh, bbox, vv_gt, vh_gt)
+    Поддерживает: .npz, .nc, .tif.
+    Возвращает: (vv, vh, bbox, vv_gt, vh_gt)
     """
-    if os.path.exists(scene_spec.npz_file):
-        npz_data = np.load(scene_spec.npz_file)
-        vv_raw = npz_data["vv"].astype(np.float32)
-        vh_raw = npz_data["vh"].astype(np.float32)
-        bbox = list(npz_data["bbox"])
-        vv_gt = npz_data["vv_gt"] if ("vv_gt" in npz_data and npz_data["vv_gt"] is not None and getattr(npz_data["vv_gt"], "ndim", 0) > 0) else None
-        vh_gt = npz_data["vh_gt"] if ("vh_gt" in npz_data and npz_data["vh_gt"] is not None and getattr(npz_data["vh_gt"], "ndim", 0) > 0) else None
-    else:
-        raise FileNotFoundError(f"Файл полигона не найден: {scene_spec.npz_file}")
+    vv_raw, vh_raw, bbox, vv_gt, vh_gt = _read_raster_data(scene_spec.file_path, scene_spec.bbox)
 
     if temporal_key != "spring" and os.path.exists(scene_spec.seasons_file):
         s_data = np.load(scene_spec.seasons_file)
@@ -265,10 +315,9 @@ def load_scene_rasters(
 
     if temporal_key in scene_spec.custom_dates:
         date_info = scene_spec.custom_dates[temporal_key]
-        if "npz" in date_info and os.path.exists(date_info["npz"]):
-            c_data = np.load(date_info["npz"])
-            c_vv = c_data["vv"].astype(np.float32)
-            c_vh = c_data["vh"].astype(np.float32)
+        c_path = date_info.get("file") or date_info.get("npz") or date_info.get("nc")
+        if c_path and os.path.exists(c_path):
+            c_vv, c_vh, _, _, _ = _read_raster_data(c_path, bbox)
             if c_vv.shape != vv_raw.shape:
                 c_vv = np.array(Image.fromarray(c_vv).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))
                 c_vh = np.array(Image.fromarray(c_vh).resize((vv_raw.shape[1], vv_raw.shape[0]), Image.Resampling.BILINEAR))

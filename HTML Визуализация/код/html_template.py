@@ -580,12 +580,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div id="bench-sidebar-content" style="display: none; flex-direction: column; gap: 12px;">
             <div class="section">
                 <div class="section-title">1. Выбор статьи / бенчмарка</div>
-                <select id="bench-select">
-                    <option value="vitale">📄 1. Vitale (SAR-ResNet, 2021)</option>
-                    <option value="merlin">📄 2. Dalsasso (MERLIN, 2021)</option>
-                    <option value="restormer">📄 3. Perera (SAR-Restormer, 2022)</option>
-                    <option value="sim2real">📄 4. Al-Husseini (Sim2Real, 2026)</option>
-                </select>
+                <select id="bench-select"></select>
                 <div id="bench-paper-tag" style="font-size: 0.74rem; color: #ffb74d; margin-top: 6px; font-weight: 600;"></div>
             </div>
 
@@ -708,6 +703,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const DATA = __DATA_JSON__;
+        window.FILTER_METADATA = __FILTER_METADATA_JSON__;
 
         const quadKeys = Object.keys(DATA).filter(k => !k.startsWith('_'));
         let currentMode = "gis";
@@ -734,36 +730,32 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         let benchCustomBImageUrl = null;
         let benchCustomBMetrics = null;
 
-        const FILTER_OPTIONS = [
-            { id: "FTV", name: "Joint FTV-SARP (α=1.25, SARP)" },
-            { id: "YOLO26_S", name: "2026: YOLO26-Small (C3k2/DWConv, PSNR 41.8 дБ)" },
-            { id: "YOLO26_N", name: "2026: YOLO26-Nano (Ультралегкая, 7.6k пар.)" },
-            { id: "RST_V2", name: "ML: SAR-Restormer V2 (Overhaul, PSNR 43.25 дБ)" },
-            { id: "RES", name: "ML: SAR-ResNet (Vitale et al.)" },
-            { id: "MER_GAMMAMLE", name: "ML: MERLIN Gamma MLE (EPI 1.001, Moran 0.06)" },
-            { id: "MER", name: "ML: MERLIN Dense-Dilated (Чемпион, Dalsasso)" },
-            { id: "MER_EXTREMEDEEP", name: "ML: MERLIN Extreme-Deep 10L (1.14M пар.)" },
-            { id: "MER_DENSE", name: "ML: MERLIN Dense-Dilated (Без потери разрешения)" },
-            { id: "MER_CBAM", name: "ML: MERLIN Dual-Attention (CBAM)" },
-            { id: "MER_RES", name: "ML: MERLIN Deep Res-U-Net" },
-            { id: "MER_BASE", name: "ML: MERLIN U-Net Base (Dalsasso)" },
-            { id: "MER_BLIND", name: "ML: MERLIN Blind-Spot (Legacy Softplus)" },
-            { id: "RST", name: "ML: SAR-Restormer (Legacy)" },
-            { id: "RPCA", name: "НИР: Robust PCA (Low-Rank L, IALM)" },
-            { id: "RPCA_S", name: "НИР: Robust PCA (Sparse S, цели и корабли)" },
-            { id: "BIL", name: "Bilateral Filter" },
-            { id: "LEE", name: "Lee Filter" },
-            { id: "ENH_LEE", name: "Enhanced Lee" },
-            { id: "KUA", name: "Kuan Filter" },
-            { id: "FRO", name: "Frost Filter" },
-            { id: "ENH_FRO", name: "Enhanced Frost" },
-            { id: "GMAP", name: "Gamma MAP" },
-            { id: "MED", name: "Median" },
-            { id: "BXC", name: "Boxcar Mean" }
-        ];
+        // Динамическое построение списка доступных фильтров из единого реестра Python
+        const FILTER_OPTIONS = (window.FILTER_METADATA && Array.isArray(window.FILTER_METADATA) && window.FILTER_METADATA.length > 0)
+            ? window.FILTER_METADATA.map(f => ({
+                id: f.id.toUpperCase(),
+                name: f.name,
+                kwargs: f.default_kwargs || {}
+            }))
+            : [
+                { id: "FTV", name: "Joint FTV-SARP (α=1.25, SARP)" },
+                { id: "RES", name: "ML: SAR-ResNet (Vitale et al.)" },
+                { id: "MER_DENSE", name: "ML: MERLIN Dense-Dilated" },
+                { id: "RST_V2", name: "ML: SAR-Restormer V2" },
+                { id: "YOLO26_S", name: "2026: YOLO26-Small" },
+                { id: "GMAP", name: "Gamma MAP" },
+                { id: "LEE", name: "Lee Filter" }
+            ];
 
         function getDefaultKwargs(op) {
-            switch (op) {
+            const up = String(op || "").toUpperCase();
+            if (window.FILTER_METADATA && Array.isArray(window.FILTER_METADATA)) {
+                const found = window.FILTER_METADATA.find(f => f.id.toUpperCase() === up || (f.id.toUpperCase().replace(/_/g, '') === up.replace(/_/g, '')));
+                if (found && found.default_kwargs && Object.keys(found.default_kwargs).length > 0) {
+                    return { ...found.default_kwargs };
+                }
+            }
+            switch (up) {
                 case "BXC": return { w: 5 };
                 case "MED": return { w: 5 };
                 case "LEE": return { w: 5, looks: 4.4 };
@@ -2198,6 +2190,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             applyBenchClip();
         });
 
+        function populateBenchSelect() {
+            const bSelect = document.getElementById('bench-select');
+            if (!bSelect || !DATA._benchmarks || DATA._benchmarks.length === 0) return;
+            bSelect.innerHTML = DATA._benchmarks.map(b => 
+                `<option value="${b.id}">📄 ${b.paper_name || b.title || b.id}</option>`
+            ).join('');
+            if (!DATA._benchmarks.some(b => b.id === currentBenchId)) {
+                currentBenchId = DATA._benchmarks[0].id;
+            }
+            bSelect.value = currentBenchId;
+        }
+
+        populateBenchSelect();
         populatePipeSelects();
         onQuadChange();
         renderCustomStages();
