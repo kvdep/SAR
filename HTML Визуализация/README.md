@@ -13,10 +13,9 @@ HTML Визуализация/
 ├── html/
 │   └── index.html               # Единственный канонический автономный HTML-интерфейс
 ├── данные/
-│   ├── s1_*.nc                  # Исходные двухполяризационные растры Sentinel-1 (NetCDF)
-│   ├── sar_2025_0_0.nc          # Полноразмерный композитный растр (NetCDF)
-│   ├── sar_2025_0_0.tif         # Геопривязанный растр GeoTIFF
 │   └── paper_results/           # Эталонные изображения из научных статей (arXiv)
+├── temp/
+│   └── data_cache/              # Автономный кэш 8 полигонов и 4 сезонов (raw_*.npz, seasons_*.npz)
 ├── результаты_фильтрации/
 │   ├── benchmark_results/       # Метрики бенчмаркинга алгоритмов (JSON, CSV, графики)
 │   ├── forest_top_pipelines.json
@@ -29,13 +28,18 @@ HTML Визуализация/
 │   ├── check_html.py            # Валидация сборки index.html и отсутствия дубликатов
 │   ├── check_html_bench.py      # Валидация структуры тестовых эталонов
 │   └── test_js_filters.js       # Тестирование клиентских фильтров JavaScript
-└── код/
-    ├── config.py                # Конфигурация путей, спецификация и реестр сцен
-    ├── filter_registry.py       # Реестр FilterRegistry, расчет метрик, WebP сжатие
-    ├── filters_suite.py         # Реализации 27 алгоритмов фильтрации
-    ├── build_full_benchmark.py  # Главный генератор канонического файла index.html
-    ├── html_template.py         # Шаблон интерфейса Leaflet + шторка A/B + KaTeX
-    └── sar_server.py            # Локальный GPU-сервер для интерактивных каскадов
+├── код/
+│   ├── config.py                # Конфигурация путей, спецификация и реестр сцен
+│   ├── models.py                # Архитектуры всех глубоких нейросетей (PyTorch nn.Module)
+│   ├── filter_registry.py       # Реестр FilterRegistry, расчет метрик, WebP сжатие
+│   ├── filters_suite.py         # Реализации 27 алгоритмов фильтрации
+│   ├── build_full_benchmark.py  # Главный генератор канонического файла index.html
+│   ├── html_template.py         # Шаблон интерфейса Leaflet + шторка A/B + KaTeX
+│   └── sar_server.py            # Локальный GPU-сервер для интерактивных каскадов
+├── requirements.txt             # Список зависимостей Python для работы модуля
+├── start_server.bat             # Скрипт запуска сервера на порту 8080 и открытия браузера
+├── build_html.bat               # Скрипт полной пересборки html/index.html
+└── open_in_browser.bat          # Быстрое открытие index.html в браузере (без сервера)
 ```
 
 ---

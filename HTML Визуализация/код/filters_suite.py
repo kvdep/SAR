@@ -46,12 +46,20 @@ def get_model(model_name: str) -> Optional[nn.Module]:
     if model_name in LOADED_MODELS:
         return LOADED_MODELS[model_name]
 
-    from train_sar_models import (
-        SAR_ResNet, SAR_MERLIN_CNN, SAR_Restormer,
-        MERLIN_AttnUNet_CBAM, MERLIN_ResUNet_Deep, MERLIN_UNet_Base,
-        SAR_MERLIN_BlindSpot_Legacy, SAR_YOLO26, MERLIN_Scale_Study,
-        SAR_Restormer_V2
-    )
+    try:
+        from models import (
+            SAR_ResNet, SAR_MERLIN_CNN, SAR_Restormer,
+            MERLIN_AttnUNet_CBAM, MERLIN_ResUNet_Deep, MERLIN_UNet_Base,
+            SAR_MERLIN_BlindSpot_Legacy, SAR_YOLO26, MERLIN_Scale_Study,
+            SAR_Restormer_V2
+        )
+    except ImportError:
+        from train_sar_models import (
+            SAR_ResNet, SAR_MERLIN_CNN, SAR_Restormer,
+            MERLIN_AttnUNet_CBAM, MERLIN_ResUNet_Deep, MERLIN_UNet_Base,
+            SAR_MERLIN_BlindSpot_Legacy, SAR_YOLO26, MERLIN_Scale_Study,
+            SAR_Restormer_V2
+        )
 
     model = None
     if model_name == "resnet":

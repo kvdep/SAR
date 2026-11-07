@@ -32,7 +32,8 @@ ROOT_DIR = os.environ.get("SAR_ROOT_DIR", PROJECT_ROOT)
 
 # Каталог входных данных (.nc, .tif, data_cache, paper_results)
 DATA_DIR = os.environ.get("SAR_DATA_DIR", os.path.join(HTML_VIS_DIR, "данные"))
-DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", os.path.join(PROJECT_ROOT, "temp", "data_cache"))
+LOCAL_CACHE_DIR = os.path.join(HTML_VIS_DIR, "temp", "data_cache")
+DATA_CACHE_DIR = os.environ.get("SAR_DATA_CACHE", LOCAL_CACHE_DIR if os.path.exists(LOCAL_CACHE_DIR) else os.path.join(PROJECT_ROOT, "temp", "data_cache"))
 PAPER_DIR = os.environ.get("SAR_PAPER_DIR", os.path.join(DATA_DIR, "paper_results"))
 
 # Каталог обученных весов нейросетевых моделей
